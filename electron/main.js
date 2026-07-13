@@ -6,6 +6,7 @@ const path = require('path');
 const store = require('./store');
 const { registerIpc } = require('./ipc');
 const healthWebhook = require('./integrations/health-webhook');
+const mt4Live = require('./integrations/mt4-live');
 
 let mainWindow = null;
 
@@ -62,6 +63,9 @@ if (!gotLock) {
     if (settings.healthWebhook?.enabled) {
       healthWebhook.start(settings.healthWebhook.port || 5599, () => mainWindow);
     }
+
+    // Watch for P/L files from the MT4 Expert Advisor (no-op until MT4 exists).
+    mt4Live.startWatcher(() => mainWindow);
   });
 }
 

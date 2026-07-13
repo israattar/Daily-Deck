@@ -1,7 +1,7 @@
 // Settings — where every integration is wired up: health live-sync,
-// internship sources, iCloud calendar links, and the GoWish share link.
-import React from 'react';
-import { useStore } from '../../api';
+// internship sources, iCloud calendar links, Myfxbook and GoWish.
+import React, { useEffect, useState } from 'react';
+import { deck, isDesktop, useStore } from '../../api';
 import { DEFAULT_SETTINGS } from '../../lib/defaults';
 import { SectionHead, Field, Chip } from '../../components/ui';
 
@@ -22,6 +22,8 @@ export default function SettingsSection() {
       brightNetwork: { ...DEFAULT_SETTINGS.internshipSources.brightNetwork, ...stored.internshipSources?.brightNetwork },
     },
     gowish: { ...DEFAULT_SETTINGS.gowish, ...stored.gowish },
+    myfxbook: { ...DEFAULT_SETTINGS.myfxbook, ...stored.myfxbook },
+    trading: { ...DEFAULT_SETTINGS.trading, ...stored.trading },
   };
 
   const save = (patch) => setStored({ ...settings, ...patch });
@@ -158,6 +160,35 @@ export default function SettingsSection() {
       </div>
 
       <div className="card mb">
+        <h3>📈 Trading imports</h3>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-end' }}>
+          <Field label="Ignore trades before">
+            <input
+              type="date"
+              value={settings.trading.importFrom}
+              onChange={(e) => save({ trading: { ...settings.trading, importFrom: e.target.value } })}
+            />
+          </Field>
+          <p className="faint" style={{ paddingBottom: 8 }}>
+            Applies to MT4 sync, statement imports and Myfxbook. Leave empty to import
+            everything. Days you log by hand are never filtered.
+          </p>
+        </div>
+        <Field label="MT4 program path (auto-detected — only set this if opening MT4 fails)">
+          <input
+            placeholder="C:\Program Files (x86)\FPMarkets MT4 Terminal\terminal.exe"
+            value={settings.trading.mt4Path || ''}
+            onChange={(e) => save({ trading: { ...settings.trading, mt4Path: e.target.value } })}
+          />
+        </Field>
+      </div>
+
+      <MyfxbookCard
+        accountId={settings.myfxbook.accountId}
+        onAccountId={(accountId) => save({ myfxbook: { accountId } })}
+      />
+
+      <div className="card mb">
         <h3>🎁 GoWish</h3>
         <Field label="Share link of your wishlist (GoWish app → wishlist → Share)">
           <input
@@ -171,6 +202,78 @@ export default function SettingsSection() {
       <p className="faint">
         Your data files live in <code>%APPDATA%\daily-deck\data</code> — back that folder up and you can never lose anything.
       </p>
+    </div>
+  );
+}
+
+// Myfxbook login lives in its own encrypted store, so this card talks to
+// the main process directly instead of the normal settings file.
+function MyfxbookCard({ accountId, onAccountId }) {
+  const [state, setState] = useState({ configured: false, email: null });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [accounts, setAccounts] = useState([]);
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (isDesktop) deck.invoke('myfxbook:status').then(setState).catch(() => {});
+  }, []);
+
+  async function saveAndTest() {
+    setBusy(true);
+    setMessage('');
+    try {
+      const result = await deck.invoke('myfxbook:configure', { email: email.trim(), password });
+      setAccounts(result.accounts);
+      setState({ configured: true, email: email.trim() });
+      setPassword('');
+      setMessage(
+        result.accounts.length === 0
+          ? 'Login works, but no trading account is connected on Myfxbook yet — add one there first.'
+          : `Connected — found ${result.accounts.length} account${result.accounts.length > 1 ? 's' : ''}. Now hit “Sync Myfxbook” in the Trading section.`
+      );
+      if (result.accounts.length === 1) onAccountId(String(result.accounts[0].id));
+    } catch (err) {
+      setMessage(err.message);
+    }
+    setBusy(false);
+  }
+
+  return (
+    <div className="card mb">
+      <h3>📈 Trading — Myfxbook sync</h3>
+      <p className="muted" style={{ marginBottom: 12 }}>
+        Myfxbook watches your MT4 account from the broker's side (works with phone-only MT4).
+        Create a free account at myfxbook.com, connect your MT4 account there, then enter your
+        <b> Myfxbook login</b> here. The password is stored encrypted on this laptop only.
+      </p>
+      {state.configured && (
+        <p className="muted" style={{ marginBottom: 10 }}>
+          <Chip tone="green">connected as {state.email}</Chip>
+        </p>
+      )}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <Field label="Myfxbook email">
+          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder={state.email || 'you@email.com'} />
+        </Field>
+        <Field label="Myfxbook password">
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </Field>
+        <button className="btn primary" onClick={saveAndTest} disabled={busy || !email.trim() || !password}>
+          {busy ? 'Testing…' : 'Save & test'}
+        </button>
+      </div>
+      {accounts.length > 1 && (
+        <Field label="Which account to sync">
+          <select value={accountId} onChange={(e) => onAccountId(e.target.value)} style={{ marginTop: 8 }}>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>{a.name} (#{a.accountId})</option>
+            ))}
+          </select>
+        </Field>
+      )}
+      {message && <p className="muted" style={{ marginTop: 10 }}>{message}</p>}
     </div>
   );
 }

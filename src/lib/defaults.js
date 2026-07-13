@@ -8,6 +8,12 @@ export const DEFAULT_SETTINGS = {
   },
   icsCalendars: [],
   gowish: { shareUrl: '' },
+  myfxbook: { accountId: '' },
+  trading: { importFrom: '', mt4Path: '' },
 };
 
 export const DEFAULT_STAGES = ['Applied', 'CV screening', 'Online assessment', 'Interview', 'Offer'];
+
+// Passcode to open the Trading section. Not a secret — just a soft lock so
+// trading data isn't on show at a glance. Change it here.
+export const TRADING_PASSCODE = '2004';

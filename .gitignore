@@ -137,6 +137,9 @@ dist
 !.yarn/sdks
 !.yarn/versions
 
+# Claude Code local tooling (not part of the app)
+.claude/
+
 # electron-builder output
 release/
 

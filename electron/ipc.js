@@ -5,6 +5,11 @@ const store = require('./store');
 const appleHealth = require('./integrations/apple-health-import');
 const healthWebhook = require('./integrations/health-webhook');
 const internships = require('./integrations/internships');
+const mt4 = require('./integrations/mt4-import');
+const myfxbook = require('./integrations/myfxbook');
+const mt4Launch = require('./integrations/mt4-launch');
+const mt4Live = require('./integrations/mt4-live');
+const prayer = require('./integrations/prayer');
 const calendar = require('./integrations/calendar');
 const gowish = require('./integrations/gowish');
 
@@ -34,6 +39,35 @@ function registerIpc(getWindow) {
   });
 
   ipcMain.handle('health:webhookStatus', () => healthWebhook.status());
+
+  // Pick a MetaTrader 4 statement (.htm) and merge its per-day P/L.
+  ipcMain.handle('trading:importMT4', async () => {
+    const result = await dialog.showOpenDialog(getWindow(), {
+      title: 'Select your MT4 statement report',
+      filters: [{ name: 'MT4 report', extensions: ['htm', 'html'] }],
+      properties: ['openFile'],
+    });
+    if (result.canceled || !result.filePaths[0]) return { canceled: true };
+    return mt4.importFile(result.filePaths[0]);
+  });
+
+  // Myfxbook — automatic MT4 P/L sync (works with phone-only MT4).
+  ipcMain.handle('myfxbook:configure', (_e, { email, password }) =>
+    myfxbook.configureAndTest(email, password)
+  );
+  ipcMain.handle('myfxbook:status', () => myfxbook.status());
+  ipcMain.handle('myfxbook:sync', (_e, { accountId } = {}) => myfxbook.sync(accountId));
+
+  // Open MT4 when the Trading tab is viewed, then scan for its data.
+  ipcMain.handle('trading:ensureMt4', async () => {
+    const result = await mt4Launch.ensureRunning();
+    if (result.launched) mt4Live.triggerCatchupScans(getWindow);
+    return result;
+  });
+
+  ipcMain.handle('trading:mt4Status', () => mt4Launch.connectionStatus());
+
+  ipcMain.handle('prayer:fetch', (_e, { city }) => prayer.fetchDay(city));
 
   ipcMain.handle('internships:refresh', (_e, sources) => internships.refreshAll(sources));
 

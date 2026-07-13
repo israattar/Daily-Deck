@@ -9,13 +9,20 @@ const INVOKE_CHANNELS = [
   'health:importExport',
   'health:webhookStatus',
   'internships:refresh',
+  'trading:importMT4',
+  'myfxbook:configure',
+  'myfxbook:status',
+  'myfxbook:sync',
+  'trading:ensureMt4',
+  'trading:mt4Status',
+  'prayer:fetch',
   'calendar:fetch',
   'gowish:sync',
   'shell:open',
 ];
 
 // Channels the main process pushes to the UI.
-const EVENT_CHANNELS = ['health:updated'];
+const EVENT_CHANNELS = ['health:updated', 'trading:updated'];
 
 contextBridge.exposeInMainWorld('deck', {
   load: (name, fallback) => ipcRenderer.invoke('store:load', { name, fallback }),

@@ -257,7 +257,12 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; 
 .mg-day.pnl-pos.strong { background: rgba(61, 220, 151, 0.28); }
 .mg-day.pnl-neg { background: rgba(255, 92, 122, 0.13); }
 .mg-day.pnl-neg.strong { background: rgba(255, 92, 122, 0.28); }
-.mg-day .pnl-amt { font-size: 11px; font-weight: 700; margin-top: 4px; }
+.mg-day .pnl-amt {
+  position: absolute; left: 6px; right: 6px; top: 50%;
+  transform: translateY(-20%);
+  text-align: center;
+  font-size: 13px; font-weight: 700;
+}
 .pnl-pos .pnl-amt { color: var(--green); }
 .pnl-neg .pnl-amt { color: var(--red); }
 
@@ -373,6 +378,231 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; 
 .wish-card .foot { display: flex; gap: 6px; margin-top: 10px; }
 
 /* ---------- Misc ---------- */
+/* ---------- Prayer section ---------- */
+.ar {
+  font-family: 'Amiri Quran', 'Aldhabi', 'Sakkal Majalla', 'Traditional Arabic', serif;
+  direction: rtl;
+}
+
+/* Ayah carousel — full width, kept visually light */
+.ayah-wrap {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin: 0 0 18px;
+}
+.ayah-card {
+  flex: 1;
+  text-align: center;
+  padding: 24px 30px 14px;
+  background:
+    radial-gradient(400px 160px at 50% -30%, rgba(139, 124, 247, 0.14), transparent 70%),
+    var(--surface);
+}
+.ayah-ar {
+  font-family: 'Amiri Quran', 'Aldhabi', 'Sakkal Majalla', 'Traditional Arabic', serif;
+  font-size: 34px;
+  line-height: 2.1;
+  direction: rtl;
+  min-height: 76px;
+  display: grid;
+  place-items: center;
+}
+.ayah-en { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+.ayah-ref { font-size: 10.5px; color: var(--faint); margin-top: 3px; }
+.ayah-arrow {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ayah-arrow:hover { color: var(--text); background: var(--surface-2); }
+.dots { display: flex; gap: 7px; justify-content: center; margin-top: 10px; }
+.dots button {
+  width: 7px; height: 7px; border-radius: 50%;
+  border: none; padding: 0; cursor: pointer;
+  background: var(--surface-3);
+  transition: all 0.15s;
+}
+.dots button.active { background: var(--accent); transform: scale(1.3); }
+
+/* Hero + side cards */
+.prayer-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; }
+.prayer-hero {
+  text-align: center;
+  padding: 24px 20px 20px;
+  background:
+    radial-gradient(500px 260px at 50% -20%, rgba(91, 140, 255, 0.13), transparent 70%),
+    var(--surface);
+}
+.prayer-hero .which { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+.prayer-hero .next-line { font-size: 12.5px; color: var(--faint); margin-top: 5px; min-height: 16px; }
+
+.ring-wrap { position: relative; display: inline-block; margin: 10px 0 6px; }
+.ring-inner {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px;
+}
+.ring-name { font-size: 19px; font-weight: 750; }
+.ring-name-ar { font-size: 30px; color: var(--accent); line-height: 1.25; }
+.ring-count {
+  font-size: 30px; font-weight: 800;
+  letter-spacing: 1.5px;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.prayer-side { display: flex; flex-direction: column; gap: 14px; }
+.hijri-card { text-align: center; padding: 18px; flex-shrink: 0; }
+.hijri-card .hijri-ar { font-size: 24px; color: var(--muted); line-height: 1.6; }
+.hijri-card .hijri-date { font-size: 34px; line-height: 1.7; color: var(--text); }
+.fact-card { flex: 1; }
+.fact { display: flex; align-items: center; gap: 12px; padding: 7px 0; }
+.fact-icon { font-size: 20px; }
+.fact-label { font-size: 11.5px; color: var(--muted); }
+.fact-value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Day timeline */
+.prayer-times { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.prayer-cell {
+  position: relative;
+  text-align: center;
+  padding: 14px 8px 12px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.prayer-cell .p-icon { color: var(--muted); }
+.prayer-cell .p-en { font-size: 13px; font-weight: 650; margin-top: 4px; }
+.prayer-cell .p-ar { font-size: 20px; color: var(--faint); line-height: 1.5; }
+.prayer-cell .p-time { font-size: 14px; font-weight: 750; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.prayer-cell.done { opacity: 0.45; }
+.prayer-cell.done .p-tick {
+  position: absolute; top: 7px; right: 9px;
+  color: var(--green); font-size: 11px; font-weight: 800;
+}
+.prayer-cell.current {
+  background: linear-gradient(160deg, rgba(139, 124, 247, 0.2), rgba(91, 140, 255, 0.1)), var(--surface);
+  border-color: var(--accent);
+  box-shadow: 0 0 22px rgba(139, 124, 247, 0.25);
+}
+.prayer-cell.current .p-icon { color: var(--accent); }
+.prayer-cell.info .p-en, .prayer-cell.info .p-time { font-weight: 500; color: var(--muted); }
+
+@media (max-width: 1100px) {
+  .prayer-grid { grid-template-columns: 1fr; }
+  .prayer-times { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Passcode gate (e.g. the Trading section) */
+.gate { position: relative; }
+.gate-blur { filter: blur(9px); pointer-events: none; user-select: none; }
+.gate-overlay {
+  position: fixed; top: 0; right: 0; bottom: 0; left: 78px;
+  display: grid; place-items: center;
+  background: rgba(9, 10, 24, 0.5);
+  backdrop-filter: blur(3px);
+  z-index: 60;
+}
+.gate-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 28px 30px;
+  width: min(340px, 90vw);
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+.gate-card.wrong { animation: shake 0.35s; }
+.gate-card .lock { font-size: 30px; margin-bottom: 10px; }
+.gate-card h2 { font-size: 18px; margin-bottom: 4px; }
+.gate-card input {
+  width: 100%; margin-top: 16px;
+  text-align: center; letter-spacing: 8px; font-size: 20px;
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+/* ---------- Notes ---------- */
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.note-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px 12px;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s;
+}
+.note-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.note-card.pinned { background: linear-gradient(170deg, rgba(139, 124, 247, 0.09), transparent 45%), var(--surface); }
+.note-pin {
+  position: absolute; top: 8px; right: 10px;
+  border: none; background: transparent;
+  color: var(--faint); font-size: 16px;
+  cursor: pointer; padding: 2px;
+}
+.note-pin:hover, .note-pin.on { color: var(--amber); }
+.note-title { font-weight: 700; font-size: 14.5px; margin-bottom: 6px; padding-right: 20px; }
+.note-body {
+  font-size: 12.5px; color: var(--muted);
+  white-space: pre-wrap;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  min-height: 18px;
+}
+.note-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px;
+}
+.note-foot .chip { gap: 6px; }
+
+/* Win-rate gauge (trading) */
+.gauge-card { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gauge { position: relative; flex-shrink: 0; }
+.gauge-num {
+  position: absolute; bottom: 0;
+  font-size: 11px; font-weight: 700; color: var(--muted);
+}
+.gauge-num.left { left: 8px; }
+.gauge-num.right { right: 8px; }
+
+/* Live connection light (e.g. MT4 sync status) */
+.status-light {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+.status-light:hover { background: var(--surface-3); }
+.status-light .led {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--faint);
+  box-shadow: 0 0 0 0 rgba(0,0,0,0);
+}
+.status-light.green .led { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.status-light.amber .led { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.status-light.red .led { background: var(--red); }
+
 .source-status { display: flex; gap: 8px; flex-wrap: wrap; }
 .divider { height: 1px; background: var(--border); margin: 14px 0; border: none; }
 .muted { color: var(--muted); font-size: 12.5px; }

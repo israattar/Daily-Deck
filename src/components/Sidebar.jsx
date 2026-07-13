@@ -25,8 +25,26 @@ const ICONS = {
       <path d="M15.5 6.5H20V11" />
     </g>
   ),
+  prayer: (
+    <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 20.5h18" />
+      <path d="M6.5 20.5v-7h11v7" />
+      <path d="M8.3 13.5c0-2.8 1.9-4 3.7-5.4 1.8 1.4 3.7 2.6 3.7 5.4" />
+      <path d="M12 8.1V6.6" />
+      <path d="M4.6 20.5V11M19.4 20.5V11" />
+      <path d="M3.7 11l.9-1.7.9 1.7M18.5 11l.9-1.7.9 1.7" />
+      <path d="M10.6 20.5v-2.3a1.4 1.4 0 0 1 2.8 0v2.3" />
+    </g>
+  ),
   messages: (
     <path d="M4 5.5h16A1.5 1.5 0 0 1 21.5 7v9a1.5 1.5 0 0 1-1.5 1.5H9l-4.5 3.6a.6.6 0 0 1-1-.5V7A1.5 1.5 0 0 1 4 5.5z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+  ),
+  notes: (
+    <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 3.5h10.5L19 7v13.5H5z" />
+      <path d="M15 3.5V7h4" />
+      <path d="M8.2 11.2h7.6M8.2 14.6h7.6M8.2 18h4.6" />
+    </g>
   ),
   wishlist: (
     <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

@@ -21,6 +21,7 @@ open just focuses the existing window.
 | 🎓 Academics | New internship openings (aggregated from The Trackr, GitHub repos, Bright Network), application tracker with per-company stage pipelines, uni assignments with countdowns + grades, LeetCode habit calendar |
 | 📅 Calendar | Your iCloud calendars + plans with friends, month view + upcoming list |
 | 📈 Trading | Green/red P&L calendar (hover a day for the amount), monthly totals, history by month, editable monthly goal with progress bar |
+| 🌙 Prayer | Sunni prayer times (Jeddah · Manchester · London via the AlAdhan API), current prayer with live countdown, Hijri date, favourite-ayah carousel |
 | 💬 Messages | "Reply to this person" reminders, split by Snapchat / Instagram / WhatsApp / Email |
 | 🎁 Wishlist | Synced from your GoWish share link (best effort) + manual items, wishlist vs bought |
 
@@ -39,19 +40,42 @@ AirDrop/send the zip to the laptop, unzip it, then in Daily Deck:
 **Health → Import Apple Health export** and pick `export.xml`.
 This loads your entire steps / sleep / cycle history.
 
-**2. Live automatic updates (set-and-forget)**
-1. In Daily Deck: **Settings → Health → Live sync: On**. If Windows Firewall asks, click **Allow** (private networks).
-2. Find your laptop's IP: run `ipconfig` in a terminal and note the IPv4 address (e.g. `192.168.1.23`).
-3. On your iPhone, install **[Health Auto Export](https://apps.apple.com/app/id1115567069)** (the JSON+CSV one).
-4. In that app, create an **Automation** → type **REST API**:
-   - URL: `http://192.168.1.23:5599/health` (your IP, your port)
-   - Format: **JSON**, method **POST**
-   - Metrics: Steps, Sleep Analysis, Menstrual Flow (add anything else you like)
-   - Schedule: hourly or "when data changes"
-5. Tap "run now" to test — the Health section updates instantly.
+**2. Live automatic updates (set-and-forget)** — two options, both need
+**Settings → Health → Live sync: On** (allow the Windows Firewall prompt) and
+phone + laptop on the same Wi-Fi. Test from the phone first: open
+`http://<laptop-ip>:5599` in Safari — it should say "Daily Deck is listening."
 
-Phone and laptop must be on the same Wi-Fi. You can also open
-`http://<laptop-ip>:5599` in the phone's browser to check the listener is up.
+**Option A — free, via Apple Shortcuts.** Build a shortcut that reads Health
+and calls a URL (no third-party app needed):
+
+1. Shortcuts app → **+** → name it "Daily Deck sync".
+2. **Find Health Samples** — Type: *Steps*, filter *Start Date is in Today*.
+3. **Calculate Statistics** — *Sum* of the Health Samples from step 2.
+4. **Find Health Samples** again — Type: *Sleep*, filter *End Date is in Today*
+   (and *Value is Asleep* if the filter is offered).
+5. **Calculate Statistics** — *Sum*; tap the input variable and pick the
+   samples' **Duration** property (minutes).
+6. **URL** action: `http://<laptop-ip>:5599/health?steps=X&sleepMin=Y`
+   where X and Y are the magic variables from steps 3 and 5.
+7. **Get Contents of URL** (GET is the default). Run it once manually and
+   allow the Health + local-network permission prompts.
+8. Automations tab → **+** → *Time of Day* → daily, **Run Immediately** →
+   run "Daily Deck sync". Add a second one in the evening so the day's
+   step count gets topped up.
+
+The endpoint is forgiving: `steps`, `sleepMin` (or `sleepHours`), `flow`
+(period day) and `date` (defaults to today) in any combination.
+Shortcuts can't read cycle data — log period days in the Health section
+(one tap) instead.
+
+**Option B — richer data, via [Health Auto Export](https://apps.apple.com/app/id1115567069)**
+(automations are a paid feature; gives you sleep *stages*, not just totals):
+create an **Automation** → type **REST API** → URL `http://<laptop-ip>:5599/health`,
+format **JSON**, method **POST**, metrics: Steps, Sleep Analysis, Menstrual Flow,
+schedule hourly. Tap "run now" to test.
+
+If sync ever stops working, your laptop's IP probably changed — run
+`ipconfig`, check the IPv4 address, and update the URL in the shortcut/app.
 
 ### 📅 Apple / iCloud calendar
 
@@ -71,6 +95,42 @@ Paste the `webcal://…` link into **Settings → Apple / iCloud calendars** wit
 Hit **↻ Refresh** in *Academics → New openings*. For each opening: **✓ Applied** moves it
 into *My applications* (with the company's real hiring stages pre-filled when The Trackr
 knows them), **✕ Skip** hides it forever.
+
+### 📈 MetaTrader 4
+
+MT4 has no retail API, so Daily Deck supports two routes:
+
+**Automatic — Myfxbook sync (works with MT4 on your phone only):**
+1. Create a free account at **myfxbook.com**.
+2. There: **Portfolio → Add Account → MetaTrader 4 (Auto update)**. You'll need your
+   MT4 **account number**, your broker's **server name** (shown in the MT4 phone app
+   under your account details, e.g. `Broker-Live04`), and your **investor password**
+   (the read-only one — it's in the account email your broker sent you, or settable
+   in your broker's client portal). Wait a few minutes for Myfxbook's first sync.
+3. In Daily Deck: **Settings → Trading — Myfxbook sync** → enter your *Myfxbook*
+   email + password → **Save & test**. The password is stored encrypted (Windows DPAPI).
+4. **Trading → ↻ Sync Myfxbook** pulls your entire daily P/L history. Hit it whenever
+   you want fresh numbers.
+
+**Fully automatic & private — Expert Advisor (needs MT4 desktop, e.g. FP Markets):**
+1. Install "MetaTrader 4 for Windows" from your broker's site and log in
+   (account number + password from their welcome email, pick their Live server).
+2. **Account History** tab → right-click → **All History** (otherwise MT4 only
+   exposes the last 3 months).
+3. MT4: **File → Open Data Folder → MQL4 → Experts** → copy
+   `mt4\DailyDeckReporter.mq4` (from this project folder) in there → restart MT4.
+4. Optional, for instant pushes: **Tools → Options → Expert Advisors** → tick
+   *Allow WebRequest for listed URL* → add `http://127.0.0.1:5599`.
+   (Skip it and syncing still works via a fallback file, within ~1 minute.)
+5. Drag **DailyDeckReporter** from Navigator → Expert Advisors onto any chart → OK.
+   The Experts tab should log "sent N days to Daily Deck". It re-syncs every
+   5 minutes while MT4 is open, and never trades — it only reads history.
+
+**Manual — statement import (needs MT4 desktop):** in MT4's **Account History**
+tab → right-click → **Save as Report**, then **Trading → ⤓ Import MT4 report** and
+pick the `.htm`. Every closed trade (profit + commission + swap) is summed into the
+day it closed. All routes can be re-run any time — same dates just get updated,
+and hand-logged days are only overwritten when the source covers those dates.
 
 ### 🎁 GoWish
 
