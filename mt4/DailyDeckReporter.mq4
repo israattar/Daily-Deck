@@ -50,13 +50,18 @@ void OnTimer()
 //+------------------------------------------------------------------+
 void SendHistory()
 {
-   // Per-day aggregates: net P/L, trade count, wins/losses, and hold time
-   // in seconds (total, winning trades only, losing trades only).
+   // Per-day aggregates: net P/L, trade count, wins/losses, hold time in
+   // seconds (total / wins / losses), plus every individual trade so the
+   // dashboard can show a per-day breakdown.
    string days[];
    double totals[];
    int    trades[], wins[], losses[];
    double holdAll[], holdWin[], holdLoss[];
+   string tradeJson[];
    int    count = 0;
+
+   // Broker times → UTC, so the dashboard can render them in UK time.
+   int gmtOffset = ServerGmtOffset();
 
    for(int i = 0; i < OrdersHistoryTotal(); i++)
    {
@@ -82,6 +87,7 @@ void SendHistory()
          ArrayResize(holdAll, count + 1);
          ArrayResize(holdWin, count + 1);
          ArrayResize(holdLoss, count + 1);
+         ArrayResize(tradeJson, count + 1);
          days[count]   = day;
          totals[count] = 0;
          trades[count] = 0;
@@ -90,6 +96,7 @@ void SendHistory()
          holdAll[count]  = 0;
          holdWin[count]  = 0;
          holdLoss[count] = 0;
+         tradeJson[count] = "";
          idx = count;
          count++;
       }
@@ -98,6 +105,16 @@ void SendHistory()
       holdAll[idx] += held;
       if(net > 0) { wins[idx] += 1;   holdWin[idx]  += held; }
       if(net < 0) { losses[idx] += 1; holdLoss[idx] += held; }
+
+      // One entry per trade: symbol, side, lots, open/close (UTC epoch), net.
+      if(StringLen(tradeJson[idx]) > 0) tradeJson[idx] += ",";
+      tradeJson[idx] += "{\"s\":\"" + OrderSymbol() + "\""
+                      + ",\"t\":\"" + (OrderType() == OP_BUY ? "buy" : "sell") + "\""
+                      + ",\"l\":" + DoubleToString(OrderLots(), 2)
+                      + ",\"o\":" + IntegerToString((int)OrderOpenTime() - gmtOffset)
+                      + ",\"c\":" + IntegerToString((int)OrderCloseTime() - gmtOffset)
+                      + ",\"p\":" + DoubleToString(net, 2)
+                      + "}";
    }
 
    if(count == 0)
@@ -125,6 +142,12 @@ void SendHistory()
             + ",\"hls\":" + DoubleToString(holdLoss[k], 0)
             + "}";
    }
+   json += "},\"trades\":{";
+   for(int t = 0; t < count; t++)
+   {
+      if(t > 0) json += ",";
+      json += "\"" + days[t] + "\":[" + tradeJson[t] + "]";
+   }
    json += "}}";
 
    WriteFallbackFile(json);
@@ -141,6 +164,14 @@ void SendHistory()
       Print("DailyDeckReporter: direct push blocked (add ", DeckUrl, " under Tools>Options>Expert Advisors). Fallback file written instead.");
    else
       Print("DailyDeckReporter: Daily Deck responded ", status, " — fallback file written");
+}
+
+// The broker server's offset from GMT right now, snapped to 30 minutes.
+// Subtracting it converts order times to UTC for correct UK-time display.
+int ServerGmtOffset()
+{
+   int off = (int)(TimeCurrent() - TimeGMT());
+   return (int)(MathRound(off / 1800.0) * 1800);
 }
 
 // Daily Deck watches this file, so syncing works even without WebRequest.

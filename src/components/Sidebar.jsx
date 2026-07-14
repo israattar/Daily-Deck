@@ -36,6 +36,13 @@ const ICONS = {
       <path d="M10.6 20.5v-2.3a1.4 1.4 0 0 1 2.8 0v2.3" />
     </g>
   ),
+  news: (
+    <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 5.5h13a1 1 0 0 1 1 1V18a2.5 2.5 0 0 0 2.5-2.5V8" transform="translate(0 .5)" />
+      <path d="M4 6h14v11.5a2.5 2.5 0 0 0 2.5 2.5H6.5A2.5 2.5 0 0 1 4 17.5z" />
+      <path d="M7 9.5h8M7 12.5h8M7 15.5h5" />
+    </g>
+  ),
   messages: (
     <path d="M4 5.5h16A1.5 1.5 0 0 1 21.5 7v9a1.5 1.5 0 0 1-1.5 1.5H9l-4.5 3.6a.6.6 0 0 1-1-.5V7A1.5 1.5 0 0 1 4 5.5z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
   ),

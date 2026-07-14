@@ -246,6 +246,7 @@ function TradingDashboard() {
           iso={editingDay}
           current={days[editingDay]}
           currentTrades={counts[editingDay]}
+          tradeList={(trading.trades || {})[editingDay] || []}
           onClose={() => setEditingDay(null)}
           onSave={setDay}
         />
@@ -419,14 +420,55 @@ function GoalInput({ initial, onSave, onCancel }) {
   );
 }
 
-function DayModal({ iso, current, currentTrades, onClose, onSave }) {
+// One trade's timestamps, shown in UK time whatever the broker's timezone.
+function ukTime(epochSeconds) {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit',
+  }).format(new Date(epochSeconds * 1000));
+}
+
+function DayModal({ iso, current, currentTrades, tradeList, onClose, onSave }) {
   const [value, setValue] = useState(current ?? '');
   const [trades, setTrades] = useState(currentTrades ?? '');
 
   const save = () => onSave(iso, Number(value), trades === '' ? null : Number(trades));
 
   return (
-    <Modal title={`P/L — ${fmtDate(iso)}`} onClose={onClose}>
+    <Modal title={`${fmtDate(iso)} — trade breakdown`} onClose={onClose}>
+      {tradeList.length > 0 ? (
+        <div className="scroll-table" style={{ marginBottom: 16 }}>
+          <table className="data">
+            <thead>
+              <tr><th>Time (UK)</th><th>Pair</th><th>Side</th><th>Lots</th><th>P/L</th></tr>
+            </thead>
+            <tbody>
+              {tradeList.map((t, i) => (
+                <tr key={i}>
+                  <td>{ukTime(t.o)} → {ukTime(t.c)}</td>
+                  <td style={{ textTransform: 'uppercase', fontWeight: 600 }}>{t.s}</td>
+                  <td>
+                    <span className={`chip ${t.t === 'buy' ? 'blue' : 'pink'}`}>{t.t}</span>
+                  </td>
+                  <td>{t.l}</td>
+                  <td style={{ color: t.p >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 700 }}>
+                    {gbp(t.p)}
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td colSpan={4} style={{ color: 'var(--muted)' }}>{tradeList.length} trades · day total</td>
+                <td style={{ color: (current ?? 0) >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 800 }}>
+                  {current != null ? gbp(current) : '—'}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="muted" style={{ marginBottom: 14 }}>
+          No individual trade data for this day — it syncs from MT4, or you can log the day manually below.
+        </p>
+      )}
       <div className="form">
         <Field label="Result for the day (£) — use a minus for a loss">
           <input

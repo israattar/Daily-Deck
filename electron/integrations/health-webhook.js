@@ -62,7 +62,7 @@ function start(port, getWindow) {
       req.on('end', () => {
         try {
           const parsed = JSON.parse(body);
-          const summary = mt4Live.ingestDays(parsed.days, parsed.counts, parsed.stats);
+          const summary = mt4Live.ingestDays(parsed.days, parsed.counts, parsed.stats, parsed.trades);
           lastReceived = new Date().toISOString();
           getWindow()?.webContents.send('trading:updated', summary);
           reply(200, { ok: true, ...summary });

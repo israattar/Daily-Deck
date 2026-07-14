@@ -16,6 +16,7 @@ const INVOKE_CHANNELS = [
   'trading:ensureMt4',
   'trading:mt4Status',
   'prayer:fetch',
+  'news:refresh',
   'calendar:fetch',
   'gowish:sync',
   'shell:open',

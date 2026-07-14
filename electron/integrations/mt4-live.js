@@ -13,13 +13,14 @@ const store = require('./../store');
 // seconds total / wins-only / losses-only). Days in the payload are
 // authoritative; zero days are skipped, and days before the Settings
 // "importFrom" cut-off are ignored.
-function ingestDays(days, counts, stats) {
+function ingestDays(days, counts, stats, trades) {
   if (!days || typeof days !== 'object') throw new Error('No days in payload');
 
   const trading = store.load('trading', {});
   trading.days = trading.days || {};
   trading.counts = trading.counts || {};
   trading.stats = trading.stats || {};
+  trading.trades = trading.trades || {};
   trading.goals = trading.goals || {};
   const cutoff = importCutoff();
 
@@ -36,6 +37,7 @@ function ingestDays(days, counts, stats) {
     } else if (counts && counts[date] != null) {
       trading.counts[date] = Number(counts[date]);
     }
+    if (Array.isArray(trades?.[date])) trading.trades[date] = trades[date];
     imported++;
   }
   if (imported > 0) {
@@ -80,7 +82,7 @@ function scanOnce(getWindow) {
       if (seenMtimes.get(file) === mtime) continue;
       seenMtimes.set(file, mtime);
       const payload = JSON.parse(readTextFile(file));
-      const summary = ingestDays(payload.days, payload.counts, payload.stats);
+      const summary = ingestDays(payload.days, payload.counts, payload.stats, payload.trades);
       if (summary.days > 0) getWindow()?.webContents.send('trading:updated', summary);
     } catch {
       // unreadable or half-written file — try again next poll

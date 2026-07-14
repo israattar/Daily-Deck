@@ -10,6 +10,7 @@ const myfxbook = require('./integrations/myfxbook');
 const mt4Launch = require('./integrations/mt4-launch');
 const mt4Live = require('./integrations/mt4-live');
 const prayer = require('./integrations/prayer');
+const news = require('./integrations/news');
 const calendar = require('./integrations/calendar');
 const gowish = require('./integrations/gowish');
 
@@ -68,6 +69,8 @@ function registerIpc(getWindow) {
   ipcMain.handle('trading:mt4Status', () => mt4Launch.connectionStatus());
 
   ipcMain.handle('prayer:fetch', (_e, { city }) => prayer.fetchDay(city));
+
+  ipcMain.handle('news:refresh', () => news.refresh());
 
   ipcMain.handle('internships:refresh', (_e, sources) => internships.refreshAll(sources));
 
