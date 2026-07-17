@@ -88,11 +88,19 @@ function parseFeed(xml, feed) {
     if (!title || !link.startsWith('http')) continue;
 
     const published = new Date(tag(block, 'pubDate') || tag(block, 'dc:date'));
-    const image =
-      (block.match(/<media:content[^>]+url="([^"]+)"/i) ||
-        block.match(/<media:thumbnail[^>]+url="([^"]+)"/i) ||
+    // Feeds vary: media:content (take the last — Guardian lists a 140px
+    // thumb before the 460px version), media:thumbnail, enclosure, or an
+    // <img> inside the description HTML. Attribute values are XML-escaped,
+    // so decode &amp; or signed URLs (Guardian's s= param) return 403.
+    const mediaUrls = [...block.matchAll(/<media:content[^>]+url="([^"]+)"/gi)].map((m) => m[1]);
+    const rawImage =
+      mediaUrls[mediaUrls.length - 1] ||
+      (block.match(/<media:thumbnail[^>]+url="([^"]+)"/i) ||
         block.match(/<enclosure[^>]+url="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i) ||
-        [])[1] || null;
+        block.match(/<img[^>]+src="(https?:\/\/[^"]+)"/i) ||
+        [])[1] ||
+      null;
+    const image = rawImage ? rawImage.replace(/&amp;/g, '&') : null;
 
     items.push({
       id: hash(link),
@@ -120,6 +128,9 @@ function clean(text) {
     .replace(/<!\[CDATA\[|\]\]>/g, '')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    // Some feeds HTML-escape their markup, so tags only appear after
+    // decoding — strip once more.
+    .replace(/<[^>]+>/g, ' ')
     .replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'")
     .replace(/&#8216;|&#8217;|&lsquo;|&rsquo;/g, "'")
     .replace(/&#8220;|&#8221;|&ldquo;|&rdquo;/g, '"')

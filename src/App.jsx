@@ -9,6 +9,7 @@ import NewsSection from './sections/news/NewsSection';
 import MessagesSection from './sections/messages/MessagesSection';
 import NotesSection from './sections/notes/NotesSection';
 import WishlistSection from './sections/wishlist/WishlistSection';
+import ClaudeSection from './sections/claude/ClaudeSection';
 import SettingsSection from './sections/settings/SettingsSection';
 
 const SECTIONS = [
@@ -21,6 +22,7 @@ const SECTIONS = [
   { id: 'messages', label: 'Messages', component: MessagesSection },
   { id: 'notes', label: 'Notes', component: NotesSection },
   { id: 'wishlist', label: 'Wishlist', component: WishlistSection },
+  { id: 'claude', label: 'Claude', component: ClaudeSection },
 ];
 
 export default function App() {

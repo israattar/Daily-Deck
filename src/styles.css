@@ -642,3 +642,11 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; 
 table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
 table.data th { text-align: left; color: var(--faint); font-size: 11.5px; text-transform: uppercase; padding: 6px 10px; position: sticky; top: 0; background: var(--surface); }
 table.data td { padding: 7px 10px; border-top: 1px solid var(--border); }
+
+/* ---------- Claude usage ---------- */
+.donut-card { display: flex; align-items: center; gap: 20px; }
+.legend { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.legend .row { display: flex; align-items: center; gap: 8px; }
+.legend .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.note { font-size: 11.5px; color: var(--faint); margin-top: 10px; line-height: 1.5; }
+.note code { background: var(--bg-2); padding: 1px 6px; border-radius: 6px; font-size: 11px; }

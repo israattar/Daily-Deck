@@ -13,6 +13,7 @@ const prayer = require('./integrations/prayer');
 const news = require('./integrations/news');
 const calendar = require('./integrations/calendar');
 const gowish = require('./integrations/gowish');
+const claudeUsage = require('./integrations/claude-usage');
 
 function registerIpc(getWindow) {
   ipcMain.handle('store:load', (_e, { name, fallback }) => store.load(name, fallback));
@@ -79,6 +80,11 @@ function registerIpc(getWindow) {
   );
 
   ipcMain.handle('gowish:sync', (_e, { shareUrl }) => gowish.fetchWishlist(shareUrl));
+
+  // Claude usage analytics — local transcripts + optional account limits.
+  ipcMain.handle('claude:usage', () => claudeUsage.analyze());
+  ipcMain.handle('claude:snapshots', () => claudeUsage.getSnapshots());
+  ipcMain.handle('claude:log', (_e, reading) => claudeUsage.logReading(reading));
 
   // Open links in the real browser, never inside the app.
   ipcMain.handle('shell:open', (_e, url) => {
