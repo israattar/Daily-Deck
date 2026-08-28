@@ -6,6 +6,7 @@ import { deck, isDesktop, useStore } from '../../api';
 import { TRADING_PASSCODE } from '../../lib/defaults';
 import { SectionHead, Stat, ProgressBar, Modal, Field } from '../../components/ui';
 import MonthGrid, { MonthNav } from '../../components/MonthGrid';
+import HourProfile from './HourProfile';
 import { fmtDate, monthKey } from '../../lib/dates';
 
 const gbp = (n) => {
@@ -240,6 +241,9 @@ function TradingDashboard() {
       </div>
 
       <YearTable year={year} days={days} counts={counts} stats={stats} />
+
+      <div className="mb" />
+      <HourProfile trades={trading.trades || {}} />
 
       {editingDay && (
         <DayModal

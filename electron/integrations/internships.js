@@ -62,7 +62,10 @@ async function fetchTrackr(cfg) {
       const url = `https://api.the-trackr.com/programmes?region=${region}&industry=${industry}&season=${season}&type=${type}`;
       const res = await fetch(url, { headers: HEADERS });
       if (!res.ok) throw new Error(`Trackr responded ${res.status}`);
-      const items = await res.json();
+      const body = await res.json();
+      // As of ~Aug 2026 the API wraps results in { programmes, groups }
+      // instead of returning a bare array — tolerate both shapes.
+      const items = Array.isArray(body) ? body : body.programmes || [];
       for (const p of items) {
         openings.push({
           id: `trackr:${p.id}`,

@@ -150,3 +150,7 @@ vite.config.ts.timestamp-*
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Never commit local data seeds/exports
+__seed.json
+*.seed.json
