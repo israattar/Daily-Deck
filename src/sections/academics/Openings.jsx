@@ -5,10 +5,17 @@
 import React, { useState } from 'react';
 import { deck, isDesktop, openLink, useStore } from '../../api';
 import { DEFAULT_SETTINGS, DEFAULT_STAGES } from '../../lib/defaults';
-import { SectionHead, Chip, Empty } from '../../components/ui';
+import { SectionHead, Chip, Empty, Modal, Field } from '../../components/ui';
 import { todayISO, daysUntil, countdownLabel, urgency } from '../../lib/dates';
 
 const EMPTY_FEED = { cache: [], dismissed: {}, sourceStatus: [], lastRefresh: null };
+
+// A dismissal used to be stored as plain `true`. It is now
+// { at, reason } so skipping can record why — old entries still read as
+// "skipped, no reason given", which is exactly what they were.
+function reasonOf(entry) {
+  return entry && typeof entry === 'object' ? (entry.reason || '') : '';
+}
 
 // When an opening actually opened: Trackr gives openingDate,
 // GitHub repos give the date it was posted.
@@ -53,6 +60,7 @@ export default function Openings() {
   const [status, setStatus] = useState('all'); // all | open | upcoming
   const [category, setCategory] = useState('all');
   const [showSkipped, setShowSkipped] = useState(false);
+  const [skipping, setSkipping] = useState(null); // opening awaiting a reason
 
   async function refresh() {
     setRefreshing(true);
@@ -111,8 +119,16 @@ export default function Openings() {
     setFeed({ ...feed, dismissed: { ...feed.dismissed, [opening.id]: true } });
   }
 
-  function skip(opening) {
-    setFeed({ ...feed, dismissed: { ...feed.dismissed, [opening.id]: true } });
+  // Skipping asks why first; the reason is optional and editable later.
+  function saveSkip(opening, reason) {
+    setFeed({
+      ...feed,
+      dismissed: {
+        ...feed.dismissed,
+        [opening.id]: { at: todayISO(), reason: reason.trim() },
+      },
+    });
+    setSkipping(null);
   }
 
   function restore(opening) {
@@ -176,7 +192,7 @@ export default function Openings() {
         fresh.map((o) => (
           <OpeningRow key={o.id} opening={o}>
             <button className="btn small primary" onClick={() => markApplied(o)}>✓ Applied</button>
-            <button className="btn small danger" onClick={() => skip(o)}>✕ Skip</button>
+            <button className="btn small danger" onClick={() => setSkipping(o)}>✕ Skip</button>
           </OpeningRow>
         ))
       )}
@@ -187,9 +203,14 @@ export default function Openings() {
             {showSkipped ? '▾ Hide skipped' : `▸ Skipped (${skipped.length})`}
           </button>
           {showSkipped && (
-            <div style={{ marginTop: 8, opacity: 0.7 }}>
+            <div style={{ marginTop: 8 }}>
               {skipped.map((o) => (
-                <OpeningRow key={o.id} opening={o}>
+                <OpeningRow
+                  key={o.id}
+                  opening={o}
+                  reason={reasonOf(feed.dismissed[o.id])}
+                  onEditReason={() => setSkipping(o)}
+                >
                   <button className="btn small primary" onClick={() => markApplied(o)}>✓ Applied</button>
                   <button className="btn small" onClick={() => restore(o)}>↩ Restore</button>
                 </OpeningRow>
@@ -198,18 +219,70 @@ export default function Openings() {
           )}
         </div>
       )}
+
+      {skipping && (
+        <SkipReasonModal
+          opening={skipping}
+          initial={reasonOf(feed.dismissed[skipping.id])}
+          alreadySkipped={!!feed.dismissed[skipping.id]}
+          onCancel={() => setSkipping(null)}
+          onSave={(reason) => saveSkip(skipping, reason)}
+        />
+      )}
     </div>
   );
 }
 
+// Asks why an opening is being skipped. The reason is optional — saving with
+// an empty box is a normal outcome, not an error.
+function SkipReasonModal({ opening, initial, alreadySkipped, onCancel, onSave }) {
+  const [reason, setReason] = useState(initial || '');
+
+  return (
+    <Modal title={alreadySkipped ? 'Edit skip reason' : 'Skip this opening'} onClose={onCancel}>
+      <p className="muted" style={{ marginTop: -6, marginBottom: 12 }}>
+        {opening.company} — {opening.role}
+      </p>
+      <Field label="Why are you skipping it? (optional)">
+        <textarea
+          rows={3}
+          autoFocus
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) onSave(reason);
+            if (e.key === 'Escape') onCancel();
+          }}
+          placeholder="e.g. needs a visa, deadline passed, not my field…"
+        />
+      </Field>
+      <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
+        <button className="btn" onClick={onCancel}>Cancel</button>
+        <button className="btn primary" onClick={() => onSave(reason)}>
+          {alreadySkipped ? 'Save reason' : 'Skip it'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 // One opening in the list; action buttons are passed in as children.
-function OpeningRow({ opening: o, children }) {
+// Skipped rows also carry the reason, which doubles as the edit control.
+function OpeningRow({ opening: o, children, reason, onEditReason }) {
   return (
     <div className="row">
       <div className="grow">
         <div className="title">
           {o.company} — {o.role}
         </div>
+        {onEditReason && (
+          <button className="skip-reason" onClick={onEditReason} title="Click to edit this reason">
+            {reason
+              ? <span>{reason}</span>
+              : <span className="none">No further information</span>}
+            <span className="pencil">✎</span>
+          </button>
+        )}
         <div className="desc" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 5 }}>
           <Chip tone="accent">{o.source}</Chip>
           {o.location && <Chip>{o.location}</Chip>}

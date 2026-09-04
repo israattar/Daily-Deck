@@ -4,9 +4,10 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
 const store = require('./store');
-const { registerIpc } = require('./ipc');
+const { registerIpc, remoteHandlers } = require('./ipc');
 const healthWebhook = require('./integrations/health-webhook');
 const mt4Live = require('./integrations/mt4-live');
+const phoneServer = require('./integrations/phone-server');
 
 let mainWindow = null;
 
@@ -62,6 +63,11 @@ if (!gotLock) {
     const settings = store.load('settings', {});
     if (settings.healthWebhook?.enabled) {
       healthWebhook.start(settings.healthWebhook.port || 5599, () => mainWindow);
+    }
+
+    // Serve the UI to her phone when she's turned it on in Settings.
+    if (settings.phone?.enabled) {
+      phoneServer.start(settings.phone.port || 5601, () => mainWindow, remoteHandlers(() => mainWindow));
     }
 
     // Watch for P/L files from the MT4 Expert Advisor (no-op until MT4 exists).

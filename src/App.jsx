@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
+import PairScreen from './components/PairScreen';
+import { isRemote, remote } from './api';
 import HealthSection from './sections/health/HealthSection';
 import AcademicsSection from './sections/academics/AcademicsSection';
 import CalendarSection from './sections/calendar/CalendarSection';
@@ -27,11 +29,16 @@ const SECTIONS = [
 
 export default function App() {
   const [active, setActive] = useState(() => localStorage.getItem('deck:lastSection') || 'health');
+  // A phone opened without the key gets the pairing screen instead of a
+  // wall of failed requests.
+  const [paired, setPaired] = useState(() => !isRemote || remote.hasKey());
 
   const select = (id) => {
     setActive(id);
     localStorage.setItem('deck:lastSection', id);
   };
+
+  if (!paired) return <PairScreen onPaired={() => setPaired(true)} />;
 
   const Section =
     active === 'settings'

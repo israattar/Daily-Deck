@@ -34,6 +34,8 @@ export default function SettingsSection() {
     <div style={{ maxWidth: 760 }}>
       <SectionHead title="Settings" sub="Data lives on this laptop, in your user folder — nothing leaves it except the syncs you set up here." />
 
+      <PhoneAccessCard />
+
       <div className="card mb">
         <h3>🍎 Health — live Apple Watch sync</h3>
         <p className="muted" style={{ marginBottom: 12 }}>
@@ -202,6 +204,108 @@ export default function SettingsSection() {
       <p className="faint">
         Your data files live in <code>%APPDATA%\daily-deck\data</code> — back that folder up and you can never lose anything.
       </p>
+    </div>
+  );
+}
+
+// Phone access — serves this UI to her iPhone over Wi-Fi/Tailscale. Lives in
+// the main process (it owns the HTTP server), so this card talks to it via IPC
+// rather than the settings file, and only appears on the laptop itself.
+function PhoneAccessCard() {
+  const [state, setState] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState('');
+
+  useEffect(() => {
+    if (isDesktop) deck.invoke('phone:status').then(setState).catch(() => {});
+  }, []);
+
+  if (!isDesktop || !state) return null;
+
+  const toggle = async (enabled) => {
+    setBusy(true);
+    setState(await deck.invoke('phone:enable', { enabled }));
+    setBusy(false);
+  };
+
+  const rotate = async () => {
+    setBusy(true);
+    setState(await deck.invoke('phone:rotate'));
+    setBusy(false);
+  };
+
+  const copy = (text, what) => {
+    navigator.clipboard?.writeText(text);
+    setCopied(what);
+    setTimeout(() => setCopied(''), 1500);
+  };
+
+  const best = state.addresses[0];
+  const link = best ? `${best.url}/?k=${state.token}` : null;
+
+  return (
+    <div className="card mb">
+      <h3>📱 Phone access — Daily Deck on your iPhone</h3>
+      <p className="muted" style={{ marginBottom: 12 }}>
+        Serves this dashboard to your phone. Open the link below in Safari once, then
+        <b> Share → Add to Home Screen</b> for a real app icon. All data stays on this
+        laptop — the phone is just a window onto it.
+      </p>
+
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button className={`btn ${state.running ? '' : 'primary'}`} disabled={busy}
+          onClick={() => toggle(!state.running)}>
+          {state.running ? 'Turn off' : 'Turn on'}
+        </button>
+        {state.running
+          ? <Chip tone="green">on · port {state.port}</Chip>
+          : <Chip>off</Chip>}
+      </div>
+
+      {state.running && (
+        <div style={{ marginTop: 14 }}>
+          {link ? (
+            <>
+              <Field label="Open this on your phone">
+                <input readOnly value={link} onFocus={(e) => e.target.select()} />
+              </Field>
+              <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                <button className="btn small" onClick={() => copy(link, 'link')}>
+                  {copied === 'link' ? '✓ Copied' : 'Copy link'}
+                </button>
+                <button className="btn small" onClick={() => copy(state.token, 'key')}>
+                  {copied === 'key' ? '✓ Copied' : `Copy key (${state.token})`}
+                </button>
+                <button className="btn small danger" onClick={rotate} disabled={busy}>
+                  New key
+                </button>
+              </div>
+              {best?.tailscale ? (
+                <p className="note" style={{ marginTop: 10 }}>
+                  This is your <b>Tailscale</b> address — it works anywhere, including on mobile data.
+                </p>
+              ) : (
+                <p className="note" style={{ marginTop: 10 }}>
+                  This is a home Wi-Fi address, so it only works on the same network. Install
+                  <b> Tailscale</b> on the laptop and your phone (free) and this will show a
+                  100.x address that works anywhere.
+                </p>
+              )}
+              {state.addresses.length > 1 && (
+                <p className="faint" style={{ marginTop: 8, fontSize: 11.5 }}>
+                  Other addresses: {state.addresses.slice(1).map((a) => a.url).join('  ·  ')}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="note">No network address found — is this laptop connected to Wi-Fi?</p>
+          )}
+          <p className="note" style={{ marginTop: 10 }}>
+            Anyone with the key can read and change your data, so treat it like a password.
+            Tap <b>New key</b> to lock out a lost phone.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

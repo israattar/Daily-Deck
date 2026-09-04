@@ -14,20 +14,45 @@ const news = require('./integrations/news');
 const calendar = require('./integrations/calendar');
 const gowish = require('./integrations/gowish');
 const claudeUsage = require('./integrations/claude-usage');
+const phoneServer = require('./integrations/phone-server');
+
+// Handlers that need nothing but their payload. The phone server reuses this
+// exact map over HTTP, so the phone and the desktop share one implementation
+// instead of drifting apart. Anything needing a file dialog, the MT4 desktop,
+// or a password stays out of here and is registered desktop-only below.
+function remoteHandlers(getWindow) {
+  return {
+    'store:load': ({ name, fallback }) => store.load(name, fallback),
+    'store:save': ({ name, data }) => {
+      store.save(name, data);
+
+      // Settings changes may turn the health webhook on/off.
+      if (name === 'settings') {
+        const webhook = data.healthWebhook || {};
+        if (webhook.enabled) healthWebhook.start(webhook.port || 5599, getWindow);
+        else healthWebhook.stop();
+      }
+      return true;
+    },
+    'health:webhookStatus': () => healthWebhook.status(),
+    'myfxbook:status': () => myfxbook.status(),
+    'myfxbook:sync': ({ accountId } = {}) => myfxbook.sync(accountId),
+    'trading:mt4Status': () => mt4Launch.connectionStatus(),
+    'prayer:fetch': ({ city }) => prayer.fetchDay(city),
+    'news:refresh': () => news.refresh(),
+    'internships:refresh': (sources) => internships.refreshAll(sources),
+    'calendar:fetch': ({ calendars, from, to }) => calendar.fetchEvents(calendars, from, to),
+    'gowish:sync': ({ shareUrl }) => gowish.fetchWishlist(shareUrl),
+    'claude:usage': () => claudeUsage.analyze(),
+    'claude:snapshots': () => claudeUsage.getSnapshots(),
+    'claude:log': (reading) => claudeUsage.logReading(reading),
+  };
+}
 
 function registerIpc(getWindow) {
-  ipcMain.handle('store:load', (_e, { name, fallback }) => store.load(name, fallback));
-  ipcMain.handle('store:save', (_e, { name, data }) => {
-    store.save(name, data);
-
-    // Settings changes may turn the health webhook on/off.
-    if (name === 'settings') {
-      const webhook = data.healthWebhook || {};
-      if (webhook.enabled) healthWebhook.start(webhook.port || 5599, getWindow);
-      else healthWebhook.stop();
-    }
-    return true;
-  });
+  for (const [channel, handler] of Object.entries(remoteHandlers(getWindow))) {
+    ipcMain.handle(channel, (_e, payload) => handler(payload));
+  }
 
   // Pick an Apple Health export.xml and merge its history into the health store.
   ipcMain.handle('health:importExport', async () => {
@@ -40,8 +65,6 @@ function registerIpc(getWindow) {
     return appleHealth.importFile(result.filePaths[0]);
   });
 
-  ipcMain.handle('health:webhookStatus', () => healthWebhook.status());
-
   // Pick a MetaTrader 4 statement (.htm) and merge its per-day P/L.
   ipcMain.handle('trading:importMT4', async () => {
     const result = await dialog.showOpenDialog(getWindow(), {
@@ -53,12 +76,10 @@ function registerIpc(getWindow) {
     return mt4.importFile(result.filePaths[0]);
   });
 
-  // Myfxbook — automatic MT4 P/L sync (works with phone-only MT4).
+  // Myfxbook login — desktop only: the password must never cross the network.
   ipcMain.handle('myfxbook:configure', (_e, { email, password }) =>
     myfxbook.configureAndTest(email, password)
   );
-  ipcMain.handle('myfxbook:status', () => myfxbook.status());
-  ipcMain.handle('myfxbook:sync', (_e, { accountId } = {}) => myfxbook.sync(accountId));
 
   // Open MT4 when the Trading tab is viewed, then scan for its data.
   ipcMain.handle('trading:ensureMt4', async () => {
@@ -67,29 +88,29 @@ function registerIpc(getWindow) {
     return result;
   });
 
-  ipcMain.handle('trading:mt4Status', () => mt4Launch.connectionStatus());
-
-  ipcMain.handle('prayer:fetch', (_e, { city }) => prayer.fetchDay(city));
-
-  ipcMain.handle('news:refresh', () => news.refresh());
-
-  ipcMain.handle('internships:refresh', (_e, sources) => internships.refreshAll(sources));
-
-  ipcMain.handle('calendar:fetch', (_e, { calendars, from, to }) =>
-    calendar.fetchEvents(calendars, from, to)
-  );
-
-  ipcMain.handle('gowish:sync', (_e, { shareUrl }) => gowish.fetchWishlist(shareUrl));
-
-  // Claude usage analytics — local transcripts + optional account limits.
-  ipcMain.handle('claude:usage', () => claudeUsage.analyze());
-  ipcMain.handle('claude:snapshots', () => claudeUsage.getSnapshots());
-  ipcMain.handle('claude:log', (_e, reading) => claudeUsage.logReading(reading));
-
   // Open links in the real browser, never inside the app.
   ipcMain.handle('shell:open', (_e, url) => {
     if (/^https?:\/\//.test(url)) shell.openExternal(url);
   });
+
+  // Phone access — desktop-only controls, so the phone can't disable or
+  // re-key the very server it is talking to.
+  ipcMain.handle('phone:status', () => phoneServer.status());
+  ipcMain.handle('phone:rotate', () => {
+    phoneServer.rotateToken();
+    return phoneServer.status();
+  });
+  ipcMain.handle('phone:enable', (_e, { enabled, port } = {}) => {
+    const settings = store.load('settings', {}) || {};
+    const nextPort = Number(port) || settings.phone?.port || 5601;
+    store.save('settings', {
+      ...settings,
+      phone: { ...(settings.phone || {}), enabled: !!enabled, port: nextPort },
+    });
+    if (enabled) phoneServer.start(nextPort, getWindow, remoteHandlers(getWindow));
+    else phoneServer.stop();
+    return phoneServer.status();
+  });
 }
 
-module.exports = { registerIpc };
+module.exports = { registerIpc, remoteHandlers };

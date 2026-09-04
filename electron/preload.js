@@ -23,6 +23,9 @@ const INVOKE_CHANNELS = [
   'claude:snapshots',
   'claude:log',
   'shell:open',
+  'phone:status',
+  'phone:enable',
+  'phone:rotate',
 ];
 
 // Channels the main process pushes to the UI.
