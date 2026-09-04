@@ -28,7 +28,18 @@ async function fetchOne(cal, from, to) {
   const url = cal.url.trim().replace(/^webcal:/, 'https:');
   const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
   if (!res.ok) throw new Error(`Calendar responded ${res.status}`);
-  const parsed = ical.sync.parseICS(await res.text());
+  const text = await res.text();
+
+  // A link to a calendar's *web page* parses to nothing and used to report a
+  // cheerful "0 found". Say what actually went wrong instead.
+  if (!/BEGIN:VCALENDAR/i.test(text)) {
+    throw new Error(
+      /<html/i.test(text)
+        ? 'That link returns a web page, not a calendar feed — look for an "Export"/"Subscribe" link that ends in .ics'
+        : 'That link is not an ICS calendar feed'
+    );
+  }
+  const parsed = ical.sync.parseICS(text);
 
   const events = [];
   for (const item of Object.values(parsed)) {
