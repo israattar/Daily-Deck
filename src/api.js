@@ -1,7 +1,7 @@
 // The UI's only door to stored data and integrations.
 // In the desktop app this talks to Electron (window.deck).
 // In a plain browser (preview) it falls back to localStorage so the UI still works.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const browserFallback = {
   load: async (name, fallback) => {
@@ -90,19 +90,31 @@ export const isLive = isDesktop || isRemote;
 // setData updates the UI and persists to disk in one call.
 export function useStore(name, fallback) {
   const [data, setDataState] = useState(null);
+  // The newest value, updated synchronously. React state lags by a render,
+  // so anything doing read-modify-write (skip an opening, tick a stage) would
+  // otherwise build on a stale copy and silently undo the previous change.
+  const latest = useRef(null);
 
   useEffect(() => {
     let alive = true;
     deck.load(name, fallback).then((value) => {
-      if (alive) setDataState(value ?? fallback);
+      if (!alive) return;
+      const resolved = value ?? fallback;
+      latest.current = resolved;
+      setDataState(resolved);
     });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name]);
 
+  // Accepts a value or an updater: setData(prev => ({ ...prev, x })).
+  // Prefer the updater whenever the new value depends on the old one.
   const setData = (next) => {
-    setDataState(next);
-    deck.save(name, next);
+    const value = typeof next === 'function' ? next(latest.current) : next;
+    latest.current = value;
+    setDataState(value);
+    deck.save(name, value);
+    return value;
   };
 
   return [data, setData];

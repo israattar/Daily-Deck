@@ -2,7 +2,7 @@
 // GitHub tracker repos on every refresh. Each opening can be marked
 // "Applied" (moves to My applications) or "Skip" (tucked away at the
 // bottom, restorable any time).
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { deck, isDesktop, openLink, useStore } from '../../api';
 import { DEFAULT_SETTINGS, DEFAULT_STAGES } from '../../lib/defaults';
 import { SectionHead, Chip, Empty, Modal, Field } from '../../components/ui';
@@ -15,6 +15,34 @@ const EMPTY_FEED = { cache: [], dismissed: {}, sourceStatus: [], lastRefresh: nu
 // "skipped, no reason given", which is exactly what they were.
 function reasonOf(entry) {
   return entry && typeof entry === 'object' ? (entry.reason || '') : '';
+}
+
+// Skips are keyed by company+role, NOT by the source's id. The Trackr
+// occasionally reissues a programme's id, which used to detach the skip and
+// make an opening she had already dealt with reappear as new. Company+role is
+// the same identity the merge in internships.js already dedupes on.
+function keyOf(opening) {
+  return `${opening.company}|${opening.role}`.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+// One-time move of id-keyed skips onto stable keys, so nothing she has
+// already skipped comes back. Unmatched keys are left alone rather than
+// dropped — an unknown key costs nothing, a lost skip is a bug.
+function migrateDismissed(feed) {
+  const dismissed = feed.dismissed || {};
+  const byId = new Map((feed.cache || []).map((o) => [o.id, o]));
+  let changed = false;
+  const next = {};
+  for (const [key, value] of Object.entries(dismissed)) {
+    const opening = byId.get(key);
+    if (opening) {
+      next[keyOf(opening)] = value;
+      changed = true;
+    } else {
+      next[key] = value;
+    }
+  }
+  return changed ? { ...feed, dismissed: next } : null;
 }
 
 // When an opening actually opened: Trackr gives openingDate,
@@ -57,22 +85,34 @@ export default function Openings() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState('all'); // all | open | upcoming
+  // Defaults to what she can actually apply to right now; "All" and
+  // "Not open yet" stay one click away in the dropdown.
+  const [status, setStatus] = useState('open'); // all | open | upcoming
   const [category, setCategory] = useState('all');
   const [showSkipped, setShowSkipped] = useState(false);
   const [skipping, setSkipping] = useState(null); // opening awaiting a reason
+
+  // Migrate id-keyed skips once, as soon as a feed with a cache is loaded.
+  useEffect(() => {
+    if (!feed?.cache?.length) return;
+    const migrated = migrateDismissed(feed);
+    if (migrated) setFeed(migrated);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feed?.cache?.length]);
 
   async function refresh() {
     setRefreshing(true);
     setError('');
     try {
       const result = await deck.invoke('internships:refresh', settings?.internshipSources || {});
-      setFeed({
-        ...feed,
+      // Functional update: a refresh can take seconds, and anything skipped
+      // while it was in flight must survive it.
+      setFeed((prev) => ({
+        ...(prev || EMPTY_FEED),
         cache: result.openings,
         sourceStatus: result.sourceStatus,
         lastRefresh: result.refreshedAt,
-      });
+      }));
     } catch (err) {
       setError(err.message);
     }
@@ -88,20 +128,23 @@ export default function Openings() {
     (category === 'all' || (o.categories || []).includes(category)) &&
     (query === '' || `${o.company} ${o.role} ${o.location}`.toLowerCase().includes(query.toLowerCase()));
 
-  const fresh = sortOpenings(feed.cache.filter((o) => !feed.dismissed[o.id] && matchesFilters(o)));
-  const skipped = sortOpenings(feed.cache.filter((o) => feed.dismissed[o.id] && matchesFilters(o)));
+  // Honour both key styles: the stable one, and any id-keyed leftover from
+  // before the migration ran.
+  const isSkipped = (o) => feed.dismissed[keyOf(o)] ?? feed.dismissed[o.id];
+  const fresh = sortOpenings(feed.cache.filter((o) => !isSkipped(o) && matchesFilters(o)));
+  const skipped = sortOpenings(feed.cache.filter((o) => isSkipped(o) && matchesFilters(o)));
 
   // Category dropdown options come from everything currently matching.
   const catCounts = new Map();
   for (const o of feed.cache) {
-    if (feed.dismissed[o.id]) continue;
+    if (isSkipped(o)) continue;
     for (const c of o.categories || []) catCounts.set(c, (catCounts.get(c) || 0) + 1);
   }
   if (category !== 'all' && !catCounts.has(category)) catCounts.set(category, 0);
   const categories = [...catCounts.keys()].sort();
 
   function markApplied(opening) {
-    setApplications([
+    setApplications((prev) => [
       {
         id: opening.id,
         company: opening.company,
@@ -114,27 +157,33 @@ export default function Openings() {
         status: 'active',
         notes: '',
       },
-      ...applications,
+      ...(prev || []),
     ]);
-    setFeed({ ...feed, dismissed: { ...feed.dismissed, [opening.id]: true } });
+    setFeed((prev) => ({
+      ...(prev || EMPTY_FEED),
+      dismissed: { ...(prev?.dismissed || {}), [keyOf(opening)]: { at: todayISO(), reason: '' } },
+    }));
   }
 
   // Skipping asks why first; the reason is optional and editable later.
   function saveSkip(opening, reason) {
-    setFeed({
-      ...feed,
+    setFeed((prev) => ({
+      ...(prev || EMPTY_FEED),
       dismissed: {
-        ...feed.dismissed,
-        [opening.id]: { at: todayISO(), reason: reason.trim() },
+        ...(prev?.dismissed || {}),
+        [keyOf(opening)]: { at: todayISO(), reason: reason.trim() },
       },
-    });
+    }));
     setSkipping(null);
   }
 
   function restore(opening) {
-    const dismissed = { ...feed.dismissed };
-    delete dismissed[opening.id];
-    setFeed({ ...feed, dismissed });
+    setFeed((prev) => {
+      const dismissed = { ...(prev?.dismissed || {}) };
+      delete dismissed[keyOf(opening)];
+      delete dismissed[opening.id]; // any pre-migration leftover
+      return { ...(prev || EMPTY_FEED), dismissed };
+    });
   }
 
   return (
@@ -208,7 +257,7 @@ export default function Openings() {
                 <OpeningRow
                   key={o.id}
                   opening={o}
-                  reason={reasonOf(feed.dismissed[o.id])}
+                  reason={reasonOf(isSkipped(o))}
                   onEditReason={() => setSkipping(o)}
                 >
                   <button className="btn small primary" onClick={() => markApplied(o)}>✓ Applied</button>
@@ -223,8 +272,8 @@ export default function Openings() {
       {skipping && (
         <SkipReasonModal
           opening={skipping}
-          initial={reasonOf(feed.dismissed[skipping.id])}
-          alreadySkipped={!!feed.dismissed[skipping.id]}
+          initial={reasonOf(isSkipped(skipping))}
+          alreadySkipped={!!isSkipped(skipping)}
           onCancel={() => setSkipping(null)}
           onSave={(reason) => saveSkip(skipping, reason)}
         />
