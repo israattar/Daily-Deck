@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import { Tabs } from '../../components/ui';
 import Openings from './Openings';
 import Applications from './Applications';
+import ApplicationDocs from './ApplicationDocs';
 import Assignments from './Assignments';
 import LeetCode from './LeetCode';
 
-const TABS = ['New openings', 'My applications', 'Assignments', 'LeetCode'];
+const TABS = ['New openings', 'My applications', 'CV & cover letter', 'Assignments', 'LeetCode'];
 
 export default function AcademicsSection() {
   const [tab, setTab] = useState(TABS[0]);
@@ -19,6 +20,7 @@ export default function AcademicsSection() {
       </div>
       {tab === 'New openings' && <Openings />}
       {tab === 'My applications' && <Applications />}
+      {tab === 'CV & cover letter' && <ApplicationDocs />}
       {tab === 'Assignments' && <Assignments />}
       {tab === 'LeetCode' && <LeetCode />}
     </div>

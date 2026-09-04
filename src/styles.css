@@ -754,3 +754,13 @@ table.data td { padding: 7px 10px; border-top: 1px solid var(--border); }
 .skip-reason .none { font-style: italic; color: var(--faint); }
 .skip-reason .pencil { opacity: 0; font-size: 11px; flex-shrink: 0; }
 .skip-reason:hover .pencil { opacity: 0.75; }
+
+/* CV / cover letter editors */
+.doc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.doc-meta { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.doc-box {
+  width: 100%; min-height: 460px; resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px; line-height: 1.65; white-space: pre-wrap;
+}
+@media (max-width: 820px) { .doc-box { min-height: 300px; } }
