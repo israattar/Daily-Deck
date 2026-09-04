@@ -43,9 +43,6 @@ const ICONS = {
       <path d="M7 9.5h8M7 12.5h8M7 15.5h5" />
     </g>
   ),
-  messages: (
-    <path d="M4 5.5h16A1.5 1.5 0 0 1 21.5 7v9a1.5 1.5 0 0 1-1.5 1.5H9l-4.5 3.6a.6.6 0 0 1-1-.5V7A1.5 1.5 0 0 1 4 5.5z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-  ),
   notes: (
     <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5 3.5h10.5L19 7v13.5H5z" />

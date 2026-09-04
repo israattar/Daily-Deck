@@ -361,10 +361,6 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; 
 .modal .form { display: flex; flex-direction: column; gap: 12px; }
 .modal .foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 
-/* ---------- Messages columns ---------- */
-.msg-col { padding: 14px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
-.msg-col .col-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13.5px; margin-bottom: 12px; }
-.msg-col .col-head .count { margin-left: auto; }
 .app-dot { width: 10px; height: 10px; border-radius: 50%; }
 
 /* ---------- Wishlist ---------- */
