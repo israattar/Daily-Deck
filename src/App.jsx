@@ -9,7 +9,6 @@ import TradingSection from './sections/trading/TradingSection';
 import PrayerSection from './sections/prayer/PrayerSection';
 import NewsSection from './sections/news/NewsSection';
 import NotesSection from './sections/notes/NotesSection';
-import WishlistSection from './sections/wishlist/WishlistSection';
 import ClaudeSection from './sections/claude/ClaudeSection';
 import SettingsSection from './sections/settings/SettingsSection';
 
@@ -21,7 +20,6 @@ const SECTIONS = [
   { id: 'prayer', label: 'Prayer', component: PrayerSection },
   { id: 'news', label: 'News', component: NewsSection },
   { id: 'notes', label: 'Notes', component: NotesSection },
-  { id: 'wishlist', label: 'Wishlist', component: WishlistSection },
   { id: 'claude', label: 'Claude', component: ClaudeSection },
 ];
 

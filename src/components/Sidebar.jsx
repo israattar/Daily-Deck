@@ -50,13 +50,6 @@ const ICONS = {
       <path d="M8.2 11.2h7.6M8.2 14.6h7.6M8.2 18h4.6" />
     </g>
   ),
-  wishlist: (
-    <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3.5" y="8" width="17" height="4" rx="1" />
-      <path d="M5 12v8.5h14V12M12 8v12.5" />
-      <path d="M12 8s-1-4.5-4-4.5C6 3.5 5.5 6 7 7c1.3.9 5 1 5 1zM12 8s1-4.5 4-4.5c2 0 2.5 2.5 1 3.5-1.3.9-5 1-5 1z" />
-    </g>
-  ),
   claude: (
     <g fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
       <path d="M12 4v16M5.1 8l13.8 8M5.1 16l13.8-8" />

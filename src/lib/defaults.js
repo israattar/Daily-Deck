@@ -7,7 +7,6 @@ export const DEFAULT_SETTINGS = {
     githubRepos: [],
   },
   icsCalendars: [],
-  gowish: { shareUrl: '' },
   myfxbook: { accountId: '' },
   trading: { importFrom: '', mt4Path: '' },
 };

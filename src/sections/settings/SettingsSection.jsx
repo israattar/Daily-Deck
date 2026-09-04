@@ -1,5 +1,5 @@
 // Settings — where every integration is wired up: health live-sync,
-// internship sources, iCloud calendar links, Myfxbook and GoWish.
+// internship sources, iCloud calendar links and Myfxbook.
 import React, { useEffect, useState } from 'react';
 import { deck, isDesktop, useStore } from '../../api';
 import { DEFAULT_SETTINGS } from '../../lib/defaults';
@@ -21,7 +21,6 @@ export default function SettingsSection() {
       trackr: { ...DEFAULT_SETTINGS.internshipSources.trackr, ...stored.internshipSources?.trackr },
       brightNetwork: { ...DEFAULT_SETTINGS.internshipSources.brightNetwork, ...stored.internshipSources?.brightNetwork },
     },
-    gowish: { ...DEFAULT_SETTINGS.gowish, ...stored.gowish },
     myfxbook: { ...DEFAULT_SETTINGS.myfxbook, ...stored.myfxbook },
     trading: { ...DEFAULT_SETTINGS.trading, ...stored.trading },
   };
@@ -189,17 +188,6 @@ export default function SettingsSection() {
         accountId={settings.myfxbook.accountId}
         onAccountId={(accountId) => save({ myfxbook: { accountId } })}
       />
-
-      <div className="card mb">
-        <h3>🎁 GoWish</h3>
-        <Field label="Share link of your wishlist (GoWish app → wishlist → Share)">
-          <input
-            placeholder="https://gowish.com/wishlist/…"
-            value={settings.gowish.shareUrl}
-            onChange={(e) => save({ gowish: { shareUrl: e.target.value } })}
-          />
-        </Field>
-      </div>
 
       <p className="faint">
         Your data files live in <code>%APPDATA%\daily-deck\data</code> — back that folder up and you can never lose anything.

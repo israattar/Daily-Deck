@@ -1,6 +1,6 @@
 // Loads a page in an invisible browser window and runs an extractor script
 // in it once it has rendered. Used for sites without a public API
-// (Bright Network, GoWish) — Electron is real Chromium, so JS-rendered
+// (Bright Network) — Electron is real Chromium, so JS-rendered
 // pages and Cloudflare checks work where plain HTTP requests fail.
 const { BrowserWindow } = require('electron');
 

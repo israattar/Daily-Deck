@@ -18,7 +18,6 @@ const INVOKE_CHANNELS = [
   'prayer:fetch',
   'news:refresh',
   'calendar:fetch',
-  'gowish:sync',
   'claude:usage',
   'claude:snapshots',
   'claude:log',

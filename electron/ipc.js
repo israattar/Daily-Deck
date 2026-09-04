@@ -12,7 +12,6 @@ const mt4Live = require('./integrations/mt4-live');
 const prayer = require('./integrations/prayer');
 const news = require('./integrations/news');
 const calendar = require('./integrations/calendar');
-const gowish = require('./integrations/gowish');
 const claudeUsage = require('./integrations/claude-usage');
 const phoneServer = require('./integrations/phone-server');
 
@@ -42,7 +41,6 @@ function remoteHandlers(getWindow) {
     'news:refresh': () => news.refresh(),
     'internships:refresh': (sources) => internships.refreshAll(sources),
     'calendar:fetch': ({ calendars, from, to }) => calendar.fetchEvents(calendars, from, to),
-    'gowish:sync': ({ shareUrl }) => gowish.fetchWishlist(shareUrl),
     'claude:usage': () => claudeUsage.analyze(),
     'claude:snapshots': () => claudeUsage.getSnapshots(),
     'claude:log': (reading) => claudeUsage.logReading(reading),
