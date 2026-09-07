@@ -19,6 +19,7 @@
   --red: #ff5c7a;
   --amber: #ffb454;
   --pink: #ff7ac8;
+  --cyan: #4fd6e0;
   --radius: 16px;
 }
 
@@ -187,6 +188,7 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; 
 .chip.accent { background: rgba(139, 124, 247, 0.16); color: var(--accent); }
 .chip.blue { background: rgba(91, 140, 255, 0.16); color: var(--accent-2); }
 .chip.pink { background: rgba(255, 122, 200, 0.16); color: var(--pink); }
+.chip.cyan { background: rgba(79, 214, 224, 0.16); color: var(--cyan); }
 
 /* Countdown urgency */
 .chip.cool { background: rgba(61, 220, 151, 0.14); color: var(--green); }
@@ -549,6 +551,17 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; 
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
+/* Aggregated stories arrive with no artwork and no summary. Rather than let
+   them look like a card whose image failed, give them their own treatment:
+   a tinted panel, an accent rule, and a larger headline filling the space the
+   photo would have taken. */
+.news-card.no-image {
+  background: linear-gradient(158deg, var(--surface-2), var(--surface) 65%);
+  border-left: 3px solid rgba(139, 124, 247, 0.45);
+}
+.news-card.no-image .news-body { padding: 16px 18px 13px; }
+.news-card.no-image .news-title { font-size: 16px; line-height: 1.35; }
+
 .news-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
 .news-foot-right { display: flex; align-items: center; gap: 8px; }
 .news-star {

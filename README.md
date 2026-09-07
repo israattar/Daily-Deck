@@ -22,7 +22,7 @@ open just focuses the existing window.
 | 📅 Calendar | Your iCloud calendars + plans with friends, month view + upcoming list |
 | 📈 Trading | Green/red P&L calendar (hover a day for the amount), monthly totals, history by month, editable monthly goal with progress bar |
 | 🌙 Prayer | Sunni prayer times (Jeddah · Manchester · London via the AlAdhan API), current prayer with live countdown, Hijri date, favourite-ayah carousel |
-| 📰 News | Your front page from public RSS feeds (Middle East · Tech & AI · UK · Science); read stories dim, and **☆ saves a story to Favourites to read later** — saved stories keep their own copy, so they stay put after the feed refreshes and drops them |
+| 📰 News | Your front page from public RSS (World · Middle East · Tech & AI · UK · Science · Astronomy). Each section pairs named mastheads — Guardian, Al Jazeera, WIRED, Arab News, NASA, ESA… — with a **Google News query that brings in whoever else is covering the story today**, so it is never stuck with a fixed list. Read stories dim, and **☆ saves a story to Favourites to read later** — saved stories keep their own copy, so they stay put after a refresh drops them |
 | 💬 Messages | "Reply to this person" reminders, split by Snapchat / Instagram / WhatsApp / Email |
 | 🎁 Wishlist | Synced from your GoWish share link (best effort) + manual items, wishlist vs bought |
 
@@ -83,6 +83,25 @@ If sync ever stops working, your laptop's IP probably changed — run
 For each calendar you want to see:
 iPhone **Calendar app → Calendars → ⓘ next to a calendar → Public Calendar → Share Link**.
 Paste the `webcal://…` link into **Settings → Apple / iCloud calendars** with a name and colour.
+
+### 📰 News sources
+
+Each section is a **mix of two kinds of feed**, set in `electron/integrations/news.js`:
+
+- **Named outlets** — Guardian, Al Jazeera, WIRED, Arab News, Saudi Gazette, TechCrunch,
+  The Next Web, NASA, ESA, Space.com, Spaceflight Now, Universe Today, Astronomy.com,
+  Phys.org, Ars Technica. Read straight from each publication's own RSS, so these cards
+  carry a photo and a real summary.
+- **A Google News query per section** — returns whoever is covering that subject *right now*
+  (40–60 different outlets in a single query, and a different set tomorrow). These have no
+  artwork and no summary, so they render as text cards with the publisher named on the chip.
+
+The per-topic cap balances by **feed, not publisher** — otherwise a Google query's sixty
+one-story outlets would each get the same share as the Guardian and bury it.
+
+To add or drop an outlet, edit the `FEEDS` array. One caveat: the parser reads RSS
+(`<item>`) only — an **Atom feed (`<entry>`) yields zero stories with no error**, so check a
+new feed actually returns something.
 
 ### 🎓 Internship sources
 

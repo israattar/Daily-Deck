@@ -1,12 +1,12 @@
 // News — a personal front page: the Iran–US / Middle East situation,
-// tech & AI, British news, and science breakthroughs, pulled from the
-// outlets Israa reads. Click a card to open the full article in the
-// browser; read articles dim so the fresh ones stand out.
+// tech & AI, British news, science, and astronomy, pulled from the outlets
+// Israa reads. Click a card to open the full article in the browser; read
+// articles dim so the fresh ones stand out, and ☆ saves one to Favourites.
 import React, { useEffect, useState } from 'react';
 import { deck, isDesktop, openLink, useStore } from '../../api';
 import { SectionHead, Chip, Empty } from '../../components/ui';
 
-const TOPICS = ['All', 'Middle East', 'Tech & AI', 'UK', 'Science'];
+const TOPICS = ['All', 'World', 'Middle East', 'Tech & AI', 'UK', 'Science', 'Astronomy'];
 const FAVOURITES = '★ Favourites';
 const STALE_MS = 30 * 60 * 1000; // auto-refresh when older than 30 min
 
@@ -135,7 +135,7 @@ export default function NewsSection() {
           {items.map((a) => (
             <article
               key={a.id}
-              className={`news-card ${read[a.id] ? 'read' : ''}`}
+              className={`news-card ${read[a.id] ? 'read' : ''} ${a.image ? '' : 'no-image'}`}
               onClick={() => openArticle(a)}
               title="Open the full article in your browser"
             >
@@ -179,7 +179,7 @@ export default function NewsSection() {
   );
 }
 
-const TOPIC_TONE = { 'Middle East': 'amber', 'Tech & AI': 'blue', UK: 'green', Science: 'pink' };
+const TOPIC_TONE = { 'Middle East': 'amber', 'Tech & AI': 'blue', UK: 'green', Science: 'pink', Astronomy: 'cyan', World: 'accent' };
 
 function timeAgo(iso) {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
