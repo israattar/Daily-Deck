@@ -22,6 +22,7 @@ open just focuses the existing window.
 | 📅 Calendar | Your iCloud calendars + plans with friends, month view + upcoming list |
 | 📈 Trading | Green/red P&L calendar (hover a day for the amount), monthly totals, history by month, editable monthly goal with progress bar |
 | 🌙 Prayer | Sunni prayer times (Jeddah · Manchester · London via the AlAdhan API), current prayer with live countdown, Hijri date, favourite-ayah carousel |
+| 📰 News | Your front page from public RSS feeds (Middle East · Tech & AI · UK · Science); read stories dim, and **☆ saves a story to Favourites to read later** — saved stories keep their own copy, so they stay put after the feed refreshes and drops them |
 | 💬 Messages | "Reply to this person" reminders, split by Snapchat / Instagram / WhatsApp / Email |
 | 🎁 Wishlist | Synced from your GoWish share link (best effort) + manual items, wishlist vs bought |
 

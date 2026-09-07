@@ -549,7 +549,22 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; 
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
-.news-foot { display: flex; justify-content: space-between; margin-top: 10px; }
+.news-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.news-foot-right { display: flex; align-items: center; gap: 8px; }
+.news-star {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--muted);
+  transition: color 0.12s, transform 0.12s;
+}
+.news-star:hover { color: var(--accent); transform: scale(1.15); }
+.news-star.on { color: var(--accent); }
+/* A saved story stays legible even once it has been read. */
+.news-card.read:has(.news-star.on) { opacity: 0.75; }
 
 /* ---------- Notes ---------- */
 .notes-grid {

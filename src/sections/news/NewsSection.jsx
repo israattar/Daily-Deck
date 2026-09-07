@@ -7,11 +7,12 @@ import { deck, isDesktop, openLink, useStore } from '../../api';
 import { SectionHead, Chip, Empty } from '../../components/ui';
 
 const TOPICS = ['All', 'Middle East', 'Tech & AI', 'UK', 'Science'];
+const FAVOURITES = '★ Favourites';
 const STALE_MS = 30 * 60 * 1000; // auto-refresh when older than 30 min
 
 export default function NewsSection() {
   const [cache, setCache] = useStore('news-cache', { items: [], sourceStatus: [], refreshedAt: null });
-  const [prefs, setPrefs] = useStore('news', { read: {} });
+  const [prefs, setPrefs] = useStore('news', { read: {}, favourites: [] });
   const [topic, setTopic] = useState('All');
   const [query, setQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -40,11 +41,31 @@ export default function NewsSection() {
   if (!cache || !prefs) return null;
 
   const read = prefs.read || {};
-  const items = cache.items.filter(
-    (a) =>
-      (topic === 'All' || a.topic === topic) &&
-      (query === '' || `${a.title} ${a.snippet} ${a.source}`.toLowerCase().includes(query.toLowerCase()))
-  );
+  const favourites = prefs.favourites || [];
+  const favouriteIds = new Set(favourites.map((a) => a.id));
+  const showingFavourites = topic === FAVOURITES;
+
+  const matchesQuery = (a) =>
+    query === '' || `${a.title} ${a.snippet} ${a.source}`.toLowerCase().includes(query.toLowerCase());
+
+  // Favourites are read from their own saved copies, not from the feed, which
+  // is why they survive a refresh that drops the story.
+  const items = showingFavourites
+    ? favourites.filter(matchesQuery)
+    : cache.items.filter((a) => (topic === 'All' || a.topic === topic) && matchesQuery(a));
+
+  // Saving the whole article, not just its id: the cache is replaced wholesale
+  // on every refresh, so an id alone would leave a favourite with nothing to
+  // show once the story rolls off the feed.
+  function toggleFavourite(article) {
+    const saved = favouriteIds.has(article.id);
+    setPrefs({
+      ...prefs,
+      favourites: saved
+        ? favourites.filter((a) => a.id !== article.id)
+        : [{ ...article, favouritedAt: new Date().toISOString() }, ...favourites],
+    });
+  }
 
   function openArticle(article) {
     openLink(article.link);
@@ -87,13 +108,26 @@ export default function NewsSection() {
               {t}{t !== 'All' && counts[t] ? ` (${counts[t]})` : ''}
             </button>
           ))}
+          <button
+            className={showingFavourites ? 'active' : ''}
+            onClick={() => setTopic(FAVOURITES)}
+            title="Stories you saved to read later"
+          >
+            {FAVOURITES}{favourites.length ? ` (${favourites.length})` : ''}
+          </button>
         </div>
       </div>
 
       {items.length === 0 ? (
         <div className="card">
-          <Empty icon="📰">
-            {cache.items.length === 0 ? 'No stories yet — refresh to load your feeds.' : 'Nothing matches.'}
+          <Empty icon={showingFavourites ? '★' : '📰'}>
+            {showingFavourites
+              ? favourites.length === 0
+                ? 'Nothing saved yet — tap the ☆ on any story to keep it here to read later.'
+                : 'None of your saved stories match.'
+              : cache.items.length === 0
+                ? 'No stories yet — refresh to load your feeds.'
+                : 'Nothing matches.'}
           </Empty>
         </div>
       ) : (
@@ -120,7 +154,21 @@ export default function NewsSection() {
                 {a.snippet && <p className="news-snippet">{a.snippet}</p>}
                 <div className="news-foot">
                   <span className="faint">{a.publishedAt ? timeAgo(a.publishedAt) : ''}</span>
+                  <span className="news-foot-right">
                   <span className="faint">read ↗</span>
+                  <button
+                    className={`news-star ${favouriteIds.has(a.id) ? 'on' : ''}`}
+                    // The whole card opens the article, so keep the click here.
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavourite(a);
+                    }}
+                    title={favouriteIds.has(a.id) ? 'Remove from favourites' : 'Save to read later'}
+                    aria-label={favouriteIds.has(a.id) ? 'Remove from favourites' : 'Save to read later'}
+                  >
+                    {favouriteIds.has(a.id) ? '★' : '☆'}
+                  </button>
+                  </span>
                 </div>
               </div>
             </article>
