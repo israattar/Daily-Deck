@@ -89,10 +89,16 @@ Paste the `webcal://…` link into **Settings → Apple / iCloud calendars** wit
 - **SimplyTK** — on by default. UK-only live tracker; reads their Supabase endpoint directly,
   the same one their own site uses. Filtered to open summer internships that are either a
   Software Engineering role *or* at a tech-sector company, so software jobs at banks count
-  too. Switch to tech companies only in Settings.
+  too. Switch to tech companies only in Settings. Listings whose title names an earlier cycle
+  ("2026 Software Dev Engineer Intern") are dropped — some stay flagged open upstream long
+  after that cycle closed.
 - **GitHub repos** — paste repo URLs (one per line) in Settings. SimplifyJobs-style trackers
   (with `listings.json`) work best; plain README-table repos are parsed too. *(This is where
   you add your two repos.)*
+
+A company often runs several *different* internships — Jane Street lists six — so those stay
+as separate rows, tagged **"2 other skipped here"** or **"1 other applied here"** to show you
+have already dealt with that company without hiding a role you have not seen.
 
 Openings carried by more than one tracker are listed **once**, with a chip for each source
 that has them. Matching is by normalised apply URL first, then a fuzzy title match within the

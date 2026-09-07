@@ -8,6 +8,9 @@ import { deck, isDesktop, openLink, useStore } from '../../api';
 import { DEFAULT_SETTINGS, DEFAULT_STAGES } from '../../lib/defaults';
 import { SectionHead, Chip, Empty, Modal, Field } from '../../components/ui';
 import { todayISO, daysUntil, countdownLabel, urgency, agoLabel } from '../../lib/dates';
+// Same identity rules the main process merges sources with, so "already
+// applied" and "already skipped" cannot disagree with "same opening".
+import { sameRole, normaliseCompany } from '../../../electron/integrations/opening-identity.mjs';
 
 const EMPTY_FEED = { cache: [], dismissed: {}, sourceStatus: [], lastRefresh: null };
 
@@ -139,16 +142,49 @@ export default function Openings() {
 
   if (!feed || !applications) return null;
 
-  const appliedKeys = new Set(applications.map((a) => `${a.company}|${a.role}`.toLowerCase()));
+  const appliedKeys = new Set(applications.map((a) => keyOf(a)));
+  // Skip keys are "company|role"; anything without a pipe is a pre-migration
+  // id key and has no title to compare against.
+  const skipEntries = Object.entries(feed.dismissed || {})
+    .filter(([key]) => key.includes('|'))
+    .map(([key, value]) => {
+      const [company, ...rest] = key.split('|');
+      return { company, role: rest.join('|'), value };
+    });
+
+  // Matched the same way the sources are merged, so a role you have already
+  // dealt with stays dealt with even when a tracker words it differently
+  // ("Software Engineering Internship" vs "… - London").
+  const isApplied = (o) =>
+    appliedKeys.has(keyOf(o)) || applications.some((a) => sameRole(a.company, a.role, o.company, o.role));
+
   const matchesFilters = (o) =>
-    !appliedKeys.has(`${o.company}|${o.role}`.toLowerCase()) &&
+    !isApplied(o) &&
     (status === 'all' || (status === 'open' ? o.open : !o.open)) &&
     (category === 'all' || (o.categories || []).includes(category)) &&
     (query === '' || `${o.company} ${o.role} ${o.location}`.toLowerCase().includes(query.toLowerCase()));
 
-  // Honour both key styles: the stable one, and any id-keyed leftover from
-  // before the migration ran.
-  const isSkipped = (o) => feed.dismissed[keyOf(o)] ?? feed.dismissed[o.id];
+  // Exact key first (cheap, and covers id-keyed leftovers from before the
+  // migration), then the same fuzzy identity as above.
+  const isSkipped = (o) => {
+    const exact = feed.dismissed[keyOf(o)] ?? feed.dismissed[o.id];
+    if (exact) return exact;
+    const near = skipEntries.find((entry) => sameRole(entry.company, entry.role, o.company, o.role));
+    return near ? near.value : undefined;
+  };
+  // A company can run several distinct internships — Jane Street lists six.
+  // They are correctly shown as separate openings, but at a glance it reads as
+  // "I have already dealt with this company", so say what you have done here.
+  const companyHistory = (o) => {
+    const company = normaliseCompany(o.company);
+    const elsewhere = (entry) =>
+      normaliseCompany(entry.company) === company && !sameRole(entry.company, entry.role, o.company, o.role);
+    return {
+      applied: applications.filter(elsewhere).length,
+      skipped: skipEntries.filter(elsewhere).length,
+    };
+  };
+
   const fresh = sortOpenings(feed.cache.filter((o) => !isSkipped(o) && matchesFilters(o)));
   const skipped = sortOpenings(feed.cache.filter((o) => isSkipped(o) && matchesFilters(o)));
 
@@ -264,7 +300,7 @@ export default function Openings() {
         </div>
       ) : (
         fresh.map((o) => (
-          <OpeningRow key={o.id} opening={o}>
+          <OpeningRow key={o.id} opening={o} history={companyHistory(o)}>
             <button className="btn small primary" onClick={() => markApplied(o)}>✓ Applied</button>
             <button className="btn small danger" onClick={() => setSkipping(o)}>✕ Skip</button>
           </OpeningRow>
@@ -283,6 +319,7 @@ export default function Openings() {
                   key={o.id}
                   opening={o}
                   reason={reasonOf(isSkipped(o))}
+                  history={companyHistory(o)}
                   onEditReason={() => setSkipping(o)}
                 >
                   <button className="btn small primary" onClick={() => markApplied(o)}>✓ Applied</button>
@@ -342,7 +379,7 @@ function SkipReasonModal({ opening, initial, alreadySkipped, onCancel, onSave })
 
 // One opening in the list; action buttons are passed in as children.
 // Skipped rows also carry the reason, which doubles as the edit control.
-function OpeningRow({ opening: o, children, reason, onEditReason }) {
+function OpeningRow({ opening: o, children, reason, onEditReason, history }) {
   return (
     <div className="row">
       <div className="grow">
@@ -361,6 +398,14 @@ function OpeningRow({ opening: o, children, reason, onEditReason }) {
           {/* One chip per source. Two chips means both trackers carry it,
               which is a good sign the listing is real and current. */}
           {sourcesOf(o).map((s) => <Chip key={s} tone="accent">{s}</Chip>)}
+          {/* This is a different role at a company you have already dealt
+              with — say so, or six Jane Street rows look like a bug. */}
+          {history?.applied > 0 && (
+            <Chip tone="green">{history.applied} other applied here</Chip>
+          )}
+          {history?.skipped > 0 && (
+            <Chip tone="amber">{history.skipped} other skipped here</Chip>
+          )}
           {o.location && <Chip>{o.location}</Chip>}
           {(o.categories || []).slice(0, 2).map((c) => <Chip key={c} tone="blue">{c}</Chip>)}
           {o.open ? (

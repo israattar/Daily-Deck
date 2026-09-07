@@ -3,6 +3,21 @@
 // tracker repos (SimplifyJobs-style). An opening carried by more than one
 // source appears once, tagged with all of them.
 
+// The identity rules live in one ESM module so the Openings screen can import
+// them too — "same opening" and "already skipped" must never disagree. This
+// file is CommonJS, so it loads them dynamically, once, before the first merge.
+let normaliseCompany;
+let roleTokens;
+let similarity;
+let TITLE_MATCH;
+let identityPromise = null;
+
+async function loadIdentity() {
+  if (normaliseCompany) return;
+  identityPromise = identityPromise || import('./opening-identity.mjs');
+  ({ normaliseCompany, roleTokens, similarity, TITLE_MATCH } = await identityPromise);
+}
+
 const HEADERS = { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0' };
 
 // `previous` is the currently cached list. A source that fails — or gets
@@ -11,6 +26,7 @@ const HEADERS = { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0' };
 // go through the same merge, so they cannot resurface as duplicates of
 // something a working source just returned.
 async function refreshAll(sources = {}, previous = []) {
+  await loadIdentity();
   const jobs = [];
 
   if (sources.trackr?.enabled !== false) {
@@ -197,10 +213,12 @@ async function fetchSimplyTk(cfg) {
     simplytkDataAsOf(),
   ]);
 
+  const cycleYear = Number(cfg.cycleYear || defaultSeason());
   const seen = new Set();
   const openings = [];
   for (const row of [...byDivision, ...bySector]) {
     if (seen.has(row.id)) continue;
+    if (!isCurrentCycle(row.title, cycleYear)) continue;
     seen.add(row.id);
     openings.push({
       id: `simplytk:${row.id}`,
@@ -211,12 +229,37 @@ async function fetchSimplyTk(cfg) {
       url: row.apply_url || null,
       sources: ['SimplyTK'],
       open: true,
-      openingDate: (row.source_posted_at || row.first_seen_at || '').slice(0, 10) || null,
+      openingDate: simplytkPostedDate(row),
       closingDate: row.deadline ? row.deadline.slice(0, 10) : null,
       postedAt: (row.first_seen_at || '').slice(0, 10) || null,
     });
   }
   return { openings, dataAsOf };
+}
+
+// Titles usually name their cycle ("2026 Software Dev Engineer Intern"). A
+// year earlier than the one we are recruiting for is last cycle's leftover,
+// still flagged open upstream. Titles naming no year are kept — most never do,
+// and an evergreen "Software Engineer Intern" is perfectly current.
+function isCurrentCycle(title, cycleYear) {
+  const years = String(title || '').match(/20\d\d/g);
+  if (!years) return true;
+  return years.some((year) => Number(year) >= cycleYear);
+}
+
+// Employers keep evergreen postings live for years, so source_posted_at can
+// read 2019 on a listing that is genuinely current — which then renders as
+// "opened 2,777 days ago". Anything implausibly older than the day SimplyTK
+// first saw it gives way to that detection date instead.
+const POSTED_GRACE_DAYS = 180;
+
+function simplytkPostedDate(row) {
+  const firstSeen = (row.first_seen_at || '').slice(0, 10) || null;
+  const posted = (row.source_posted_at || '').slice(0, 10) || null;
+  if (!posted) return firstSeen;
+  if (!firstSeen) return posted;
+  const gapDays = (new Date(firstSeen) - new Date(posted)) / 86400000;
+  return gapDays > POSTED_GRACE_DAYS ? firstSeen : posted;
 }
 
 // city and location overlap ("London" / "London, United Kingdom"), so only
@@ -337,53 +380,6 @@ function normaliseUrl(raw) {
   const host = url.hostname.toLowerCase().replace(/^www\./, '');
   return `${host}${url.pathname.replace(/\/+$/, '')}${query ? `?${query}` : ''}`;
 }
-
-// "J.P. Morgan" and "JPMorgan" are the same employer.
-function normaliseCompany(name) {
-  return String(name || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
-}
-
-// Words every summer-internship title carries. They cannot tell two roles apart.
-const ROLE_NOISE = new Set([
-  'internship', 'intern', 'summer', 'placement', 'programme', 'program', 'scheme',
-  'uk', 'united', 'kingdom', 'student', 'undergraduate', 'graduate', 'the', 'and', 'for',
-]);
-
-// Crude but symmetric: "engineering" and "engineer" both land on "engine".
-function stem(word) {
-  let out = word;
-  if (out.length > 5 && out.endsWith('ing')) out = out.slice(0, -3);
-  if (out.length > 4 && out.endsWith('ers')) out = out.slice(0, -3);
-  else if (out.length > 3 && out.endsWith('er')) out = out.slice(0, -2);
-  else if (out.length > 3 && out.endsWith('s')) out = out.slice(0, -1);
-  return out;
-}
-
-function roleTokens(title) {
-  return new Set(
-    String(title || '')
-      .toLowerCase()
-      .replace(/20\d\d/g, ' ')
-      .split(/[^a-z]+/)
-      .filter((word) => word.length > 1 && !ROLE_NOISE.has(word))
-      .map(stem)
-  );
-}
-
-// Titles that boil down to a single word ("2027 Summer Analyst Programme" is
-// just {analyst}) are far too weak to merge on — Goldman Sachs alone runs
-// several. Those only ever merge when their apply links agree.
-function similarity(a, b) {
-  if (a.size < 2 || b.size < 2) return 0;
-  let shared = 0;
-  for (const token of a) if (b.has(token)) shared++;
-  return shared / (a.size + b.size - shared);
-}
-
-// Deliberately strict: 0.7 keeps "Software Engineer Intern" and "Software
-// Engineer Intern - Infrastructure" apart while still merging the wording
-// differences between sources.
-const TITLE_MATCH = 0.7;
 
 // Openings cached before multi-source merging carry a single `source` string.
 function sourcesOf(opening) {
