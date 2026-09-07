@@ -19,7 +19,6 @@ export default function SettingsSection() {
       ...DEFAULT_SETTINGS.internshipSources,
       ...stored.internshipSources,
       trackr: { ...DEFAULT_SETTINGS.internshipSources.trackr, ...stored.internshipSources?.trackr },
-      brightNetwork: { ...DEFAULT_SETTINGS.internshipSources.brightNetwork, ...stored.internshipSources?.brightNetwork },
     },
     myfxbook: { ...DEFAULT_SETTINGS.myfxbook, ...stored.myfxbook },
     trading: { ...DEFAULT_SETTINGS.trading, ...stored.trading },
@@ -27,7 +26,6 @@ export default function SettingsSection() {
 
   const save = (patch) => setStored({ ...settings, ...patch });
   const trackr = settings.internshipSources.trackr;
-  const brightNetwork = settings.internshipSources.brightNetwork;
 
   return (
     <div style={{ maxWidth: 760 }}>
@@ -105,25 +103,6 @@ export default function SettingsSection() {
             }
           />
         </Field>
-
-        <div style={{ display: 'flex', gap: 14, marginTop: 12, alignItems: 'flex-end' }}>
-          <Field label="Bright Network (experimental — scraped from their site)">
-            <select
-              value={brightNetwork.enabled ? 'on' : 'off'}
-              onChange={(e) => save({ internshipSources: { ...settings.internshipSources, brightNetwork: { ...brightNetwork, enabled: e.target.value === 'on' } } })}
-            >
-              <option value="off">Off</option>
-              <option value="on">On</option>
-            </select>
-          </Field>
-          <Field label="Search URL (optional — paste a brightnetwork.co.uk search you like)">
-            <input
-              style={{ width: 340 }}
-              value={brightNetwork.url}
-              onChange={(e) => save({ internshipSources: { ...settings.internshipSources, brightNetwork: { ...brightNetwork, url: e.target.value } } })}
-            />
-          </Field>
-        </div>
       </div>
 
       <div className="card mb">

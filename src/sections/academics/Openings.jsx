@@ -1,5 +1,5 @@
-// New internship openings, aggregated from The Trackr, Bright Network and
-// GitHub tracker repos on every refresh. Each opening can be marked
+// New internship openings, aggregated from The Trackr and GitHub tracker
+// repos on every refresh. Each opening can be marked
 // "Applied" (moves to My applications) or "Skip" (tucked away at the
 // bottom, restorable any time).
 import React, { useEffect, useState } from 'react';
@@ -233,7 +233,7 @@ export default function Openings() {
         <div className="card">
           <Empty icon="🎓">
             {feed.cache.length === 0
-              ? 'No openings loaded yet. Refresh to fetch from The Trackr, Bright Network and your GitHub repos (configure sources in Settings).'
+              ? 'No openings loaded yet. Refresh to fetch from The Trackr and your GitHub repos (configure sources in Settings).'
               : 'Nothing matches these filters — or you are all caught up. 🎉'}
           </Empty>
         </div>

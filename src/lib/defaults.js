@@ -3,7 +3,6 @@ export const DEFAULT_SETTINGS = {
   healthWebhook: { enabled: false, port: 5599 },
   internshipSources: {
     trackr: { enabled: true, region: 'UK', industry: 'Tech', seasons: [], types: ['summer-internships'] },
-    brightNetwork: { enabled: false, url: '' },
     githubRepos: [],
   },
   icsCalendars: [],

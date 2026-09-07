@@ -18,7 +18,7 @@ open just focuses the existing window.
 | Section | What it does |
 |---|---|
 | 💜 Health | Sleep (with stages), steps analytics (daily / weekly / monthly / full history), menstrual cycle tracking with phase + next-period prediction |
-| 🎓 Academics | New internship openings (aggregated from The Trackr, GitHub repos, Bright Network), application tracker with per-company stage pipelines, uni assignments with countdowns + grades, LeetCode habit calendar |
+| 🎓 Academics | New internship openings (aggregated from The Trackr and GitHub repos), application tracker with per-company stage pipelines, uni assignments with countdowns + grades, LeetCode habit calendar |
 | 📅 Calendar | Your iCloud calendars + plans with friends, month view + upcoming list |
 | 📈 Trading | Green/red P&L calendar (hover a day for the amount), monthly totals, history by month, editable monthly goal with progress bar |
 | 🌙 Prayer | Sunni prayer times (Jeddah · Manchester · London via the AlAdhan API), current prayer with live countdown, Hijri date, favourite-ayah carousel |
@@ -89,8 +89,6 @@ Paste the `webcal://…` link into **Settings → Apple / iCloud calendars** wit
 - **GitHub repos** — paste repo URLs (one per line) in Settings. SimplifyJobs-style trackers
   (with `listings.json`) work best; plain README-table repos are parsed too. *(This is where
   you add your two repos.)*
-- **Bright Network** — experimental scrape of their search page; toggle it on in Settings.
-  If they change their site it fails gracefully and shows a red chip.
 
 Hit **↻ Refresh** in *Academics → New openings*. For each opening: **✓ Applied** moves it
 into *My applications* (with the company's real hiring stages pre-filled when The Trackr
@@ -152,10 +150,8 @@ electron/                 main process (Node side)
   integrations/           one file per external thing
     health-webhook.js     receives Health Auto Export pushes
     apple-health-import.js  parses export.xml (streamed)
-    internships.js        The Trackr API + GitHub repos + Bright Network
+    internships.js        The Trackr API + GitHub tracker repos
     calendar.js           ICS fetch + recurring-event expansion
-    gowish.js             GoWish share-page scrape
-    scrape.js             hidden-window scraper used by the two above
 
 src/                      the UI (React)
   App.jsx                 sidebar + section switching

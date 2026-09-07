@@ -1,7 +1,6 @@
 // Pulls internship openings from every configured source and merges them
-// into one deduplicated list. Sources: The Trackr API, GitHub tracker
-// repos (SimplifyJobs-style), and Bright Network (scraped, best effort).
-const { scrape } = require('./scrape');
+// into one deduplicated list. Sources: The Trackr API and GitHub tracker
+// repos (SimplifyJobs-style).
 
 const HEADERS = { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0' };
 
@@ -13,9 +12,6 @@ async function refreshAll(sources = {}) {
   }
   for (const repoUrl of sources.githubRepos || []) {
     if (repoUrl.trim()) jobs.push(runSource(repoName(repoUrl), () => fetchGithubRepo(repoUrl)));
-  }
-  if (sources.brightNetwork?.enabled) {
-    jobs.push(runSource('Bright Network', () => fetchBrightNetwork(sources.brightNetwork)));
   }
 
   const results = await Promise.all(jobs);
@@ -171,50 +167,6 @@ function stripMarkup(text) {
 
 function repoName(url) {
   return url.match(/github\.com\/[^/]+\/([^/#?]+)/)?.[1] || 'GitHub repo';
-}
-
-// ------------------------------------------------------------ Bright Network
-// No public API and Cloudflare-protected, so we render their search page in a
-// hidden window and read the job cards out of the DOM. Best effort — if their
-// markup changes this degrades gracefully and the UI shows the source as down.
-async function fetchBrightNetwork(cfg) {
-  const url = cfg.url || 'https://www.brightnetwork.co.uk/search/?content_types=jobs&query=internship';
-  const extractor = `
-    (() => {
-      const links = [...document.querySelectorAll('a[href*="/graduate-jobs/"], a[href*="/jobs/"], a[href*="/internships/"]')];
-      const seen = new Set();
-      const jobs = [];
-      for (const a of links) {
-        const title = a.textContent.trim().replace(/\\s+/g, ' ');
-        if (title.length < 8 || seen.has(a.href)) continue;
-        seen.add(a.href);
-        const card = a.closest('article, li, [class*="card"], [class*="result"], [class*="Result"]');
-        const companyEl = card && card.querySelector('[class*="employer"], [class*="company"], [class*="organisation"], h4, strong');
-        jobs.push({
-          title,
-          url: a.href,
-          company: companyEl ? companyEl.textContent.trim().replace(/\\s+/g, ' ') : '',
-        });
-      }
-      return jobs.length ? jobs : null;
-    })()
-  `;
-  const jobs = await scrape(url, extractor, { timeoutMs: 35000 });
-  if (!jobs) throw new Error('Could not read openings from the page (site may have changed)');
-  return jobs.map((job) => ({
-    id: `bn:${hash(job.url)}`,
-    company: job.company || companyFromUrl(job.url),
-    role: job.title,
-    location: '',
-    url: job.url,
-    source: 'Bright Network',
-    open: true,
-  }));
-}
-
-function companyFromUrl(url) {
-  const segment = url.match(/graduate-jobs\/([^/]+)/)?.[1] || '';
-  return segment.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function hash(text) {
