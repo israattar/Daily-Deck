@@ -3,6 +3,14 @@ export const DEFAULT_SETTINGS = {
   healthWebhook: { enabled: false, port: 5599 },
   internshipSources: {
     trackr: { enabled: true, region: 'UK', industry: 'Tech', seasons: [], types: ['summer-internships'] },
+    // "Tech" spans both the role's division and the company's sector, so a
+    // software job at a bank and any job at Google both count.
+    simplytk: {
+      enabled: true,
+      programmeType: 'summer_internship',
+      divisions: ['Software Engineering'],
+      sectors: ['tech'],
+    },
     githubRepos: [],
   },
   icsCalendars: [],

@@ -19,6 +19,7 @@ export default function SettingsSection() {
       ...DEFAULT_SETTINGS.internshipSources,
       ...stored.internshipSources,
       trackr: { ...DEFAULT_SETTINGS.internshipSources.trackr, ...stored.internshipSources?.trackr },
+      simplytk: { ...DEFAULT_SETTINGS.internshipSources.simplytk, ...stored.internshipSources?.simplytk },
     },
     myfxbook: { ...DEFAULT_SETTINGS.myfxbook, ...stored.myfxbook },
     trading: { ...DEFAULT_SETTINGS.trading, ...stored.trading },
@@ -26,6 +27,8 @@ export default function SettingsSection() {
 
   const save = (patch) => setStored({ ...settings, ...patch });
   const trackr = settings.internshipSources.trackr;
+  const simplytk = settings.internshipSources.simplytk;
+  const patchSources = (patch) => save({ internshipSources: { ...settings.internshipSources, ...patch } });
 
   return (
     <div style={{ maxWidth: 760 }}>
@@ -91,6 +94,31 @@ export default function SettingsSection() {
               value={trackr.seasons?.[0] || ''}
               onChange={(e) => save({ internshipSources: { ...settings.internshipSources, trackr: { ...trackr, seasons: e.target.value ? [e.target.value] : [] } } })}
             />
+          </Field>
+        </div>
+
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
+          <Field label="SimplyTK (UK live tracker)">
+            <select
+              value={simplytk.enabled ? 'on' : 'off'}
+              onChange={(e) => patchSources({ simplytk: { ...simplytk, enabled: e.target.value === 'on' } })}
+            >
+              <option value="on">On</option>
+              <option value="off">Off</option>
+            </select>
+          </Field>
+          <Field label="Roles counted as tech">
+            <select
+              value={simplytk.divisions?.length ? 'both' : 'sector'}
+              onChange={(e) =>
+                patchSources({
+                  simplytk: { ...simplytk, divisions: e.target.value === 'both' ? ['Software Engineering'] : [] },
+                })
+              }
+            >
+              <option value="both">SWE roles anywhere + tech firms</option>
+              <option value="sector">Tech companies only</option>
+            </select>
           </Field>
         </div>
 

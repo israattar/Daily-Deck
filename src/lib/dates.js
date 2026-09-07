@@ -55,6 +55,21 @@ export function countdownLabel(iso, noun = 'due') {
   return `${-days} days overdue`;
 }
 
+// "just now" / "6 min ago" / "3 hours ago", for full timestamps rather than
+// plain dates — used to show how fresh each internship source is.
+export function agoLabel(timestamp) {
+  if (!timestamp) return 'never';
+  const seconds = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
+  if (Number.isNaN(seconds)) return 'unknown';
+  if (seconds < 90) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+}
+
 // Urgency class for countdown chips.
 export function urgency(iso) {
   const days = daysUntil(iso);

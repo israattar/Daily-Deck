@@ -1,12 +1,13 @@
-// New internship openings, aggregated from The Trackr and GitHub tracker
-// repos on every refresh. Each opening can be marked
+// New internship openings, aggregated from The Trackr, SimplyTK and GitHub
+// tracker repos on every refresh, then merged so an opening carried by more
+// than one of them is listed once with every source named. Each can be marked
 // "Applied" (moves to My applications) or "Skip" (tucked away at the
 // bottom, restorable any time).
 import React, { useEffect, useState } from 'react';
 import { deck, isDesktop, openLink, useStore } from '../../api';
 import { DEFAULT_SETTINGS, DEFAULT_STAGES } from '../../lib/defaults';
 import { SectionHead, Chip, Empty, Modal, Field } from '../../components/ui';
-import { todayISO, daysUntil, countdownLabel, urgency } from '../../lib/dates';
+import { todayISO, daysUntil, countdownLabel, urgency, agoLabel } from '../../lib/dates';
 
 const EMPTY_FEED = { cache: [], dismissed: {}, sourceStatus: [], lastRefresh: null };
 
@@ -19,8 +20,13 @@ function reasonOf(entry) {
 
 // Skips are keyed by company+role, NOT by the source's id. The Trackr
 // occasionally reissues a programme's id, which used to detach the skip and
-// make an opening she had already dealt with reappear as new. Company+role is
-// the same identity the merge in internships.js already dedupes on.
+// make an opening she had already dealt with reappear as new.
+//
+// Note this is a looser identity than the cross-source merge in
+// internships.js, which matches on apply URL and fuzzy title. A merged
+// opening takes its role text from whichever source ran first, so if that
+// source ever drops a listing the others still carry, the skip key shifts
+// and the opening surfaces once more.
 function keyOf(opening) {
   return `${opening.company}|${opening.role}`.toLowerCase().replace(/\s+/g, ' ').trim();
 }
@@ -43,6 +49,13 @@ function migrateDismissed(feed) {
     }
   }
   return changed ? { ...feed, dismissed: next } : null;
+}
+
+// Openings carry every source that listed them. Anything cached before
+// multi-source merging still has a single `source` string.
+function sourcesOf(opening) {
+  if (opening.sources?.length) return opening.sources;
+  return opening.source ? [opening.source] : [];
 }
 
 // When an opening actually opened: Trackr gives openingDate,
@@ -104,7 +117,12 @@ export default function Openings() {
     setRefreshing(true);
     setError('');
     try {
-      const result = await deck.invoke('internships:refresh', settings?.internshipSources || {});
+      const result = await deck.invoke('internships:refresh', {
+        sources: settings?.internshipSources || {},
+        // So a source that is down or throttled keeps what it found last time
+        // rather than having its openings vanish from the list.
+        previous: feed?.cache || [],
+      });
       // Functional update: a refresh can take seconds, and anything skipped
       // while it was in flight must survive it.
       setFeed((prev) => ({
@@ -150,7 +168,7 @@ export default function Openings() {
         company: opening.company,
         role: opening.role,
         url: opening.url,
-        source: opening.source,
+        source: sourcesOf(opening).join(' + '),
         appliedAt: todayISO(),
         stages: opening.stagesHint?.length ? ['Applied', ...opening.stagesHint] : [...DEFAULT_STAGES],
         stageIndex: 0,
@@ -192,7 +210,7 @@ export default function Openings() {
         title="New openings"
         sub={
           feed.lastRefresh
-            ? `${fresh.length} to review · refreshed ${new Date(feed.lastRefresh).toLocaleString('en-GB')}`
+            ? `${fresh.length} to review · refreshed ${agoLabel(feed.lastRefresh)}`
             : 'Hit refresh to pull openings from all your sources'
         }
       >
@@ -206,7 +224,14 @@ export default function Openings() {
         <div className="source-status mb">
           {feed.sourceStatus.map((s) => (
             <Chip key={s.name} tone={s.ok ? 'green' : 'red'}>
-              {s.name}: {s.ok ? `${s.count} found` : s.error}
+              {s.name}:{' '}
+              {s.ok
+                ? `${s.count} found · fetched ${agoLabel(s.refreshedAt)}${
+                    // Only SimplyTK reports when it last checked its own
+                    // listings, which catches a live fetch of stale data.
+                    s.dataAsOf ? ` · they updated ${agoLabel(s.dataAsOf)}` : ''
+                  }`
+                : `${s.error}${s.keptFromCache ? ` · showing ${s.keptFromCache} from last time` : ''}`}
             </Chip>
           ))}
           {error && <Chip tone="red">{error}</Chip>}
@@ -233,7 +258,7 @@ export default function Openings() {
         <div className="card">
           <Empty icon="🎓">
             {feed.cache.length === 0
-              ? 'No openings loaded yet. Refresh to fetch from The Trackr and your GitHub repos (configure sources in Settings).'
+              ? 'No openings loaded yet. Refresh to fetch from The Trackr, SimplyTK and your GitHub repos (configure sources in Settings).'
               : 'Nothing matches these filters — or you are all caught up. 🎉'}
           </Empty>
         </div>
@@ -333,7 +358,9 @@ function OpeningRow({ opening: o, children, reason, onEditReason }) {
           </button>
         )}
         <div className="desc" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 5 }}>
-          <Chip tone="accent">{o.source}</Chip>
+          {/* One chip per source. Two chips means both trackers carry it,
+              which is a good sign the listing is real and current. */}
+          {sourcesOf(o).map((s) => <Chip key={s} tone="accent">{s}</Chip>)}
           {o.location && <Chip>{o.location}</Chip>}
           {(o.categories || []).slice(0, 2).map((c) => <Chip key={c} tone="blue">{c}</Chip>)}
           {o.open ? (

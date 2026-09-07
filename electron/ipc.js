@@ -39,7 +39,12 @@ function remoteHandlers(getWindow) {
     'trading:mt4Status': () => mt4Launch.connectionStatus(),
     'prayer:fetch': ({ city }) => prayer.fetchDay(city),
     'news:refresh': () => news.refresh(),
-    'internships:refresh': (sources) => internships.refreshAll(sources),
+    // Takes { sources, previous }; older callers passed the sources object
+    // on its own, which still works.
+    'internships:refresh': (payload = {}) => {
+      const { sources, previous } = payload.sources ? payload : { sources: payload, previous: [] };
+      return internships.refreshAll(sources, previous);
+    },
     'calendar:fetch': ({ calendars, from, to }) => calendar.fetchEvents(calendars, from, to),
     'claude:usage': () => claudeUsage.analyze(),
     'claude:snapshots': () => claudeUsage.getSnapshots(),

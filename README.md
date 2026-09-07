@@ -18,7 +18,7 @@ open just focuses the existing window.
 | Section | What it does |
 |---|---|
 | 💜 Health | Sleep (with stages), steps analytics (daily / weekly / monthly / full history), menstrual cycle tracking with phase + next-period prediction |
-| 🎓 Academics | New internship openings (aggregated from The Trackr and GitHub repos), application tracker with per-company stage pipelines, uni assignments with countdowns + grades, LeetCode habit calendar |
+| 🎓 Academics | New internship openings (aggregated + de-duplicated from The Trackr, SimplyTK and GitHub repos), application tracker with per-company stage pipelines, uni assignments with countdowns + grades, LeetCode habit calendar |
 | 📅 Calendar | Your iCloud calendars + plans with friends, month view + upcoming list |
 | 📈 Trading | Green/red P&L calendar (hover a day for the amount), monthly totals, history by month, editable monthly goal with progress bar |
 | 🌙 Prayer | Sunni prayer times (Jeddah · Manchester · London via the AlAdhan API), current prayer with live countdown, Hijri date, favourite-ayah carousel |
@@ -86,13 +86,33 @@ Paste the `webcal://…` link into **Settings → Apple / iCloud calendars** wit
 ### 🎓 Internship sources
 
 - **The Trackr** — on by default (UK · Tech · current season, all changeable in Settings). Uses their public API.
+- **SimplyTK** — on by default. UK-only live tracker; reads their Supabase endpoint directly,
+  the same one their own site uses. Filtered to open summer internships that are either a
+  Software Engineering role *or* at a tech-sector company, so software jobs at banks count
+  too. Switch to tech companies only in Settings.
 - **GitHub repos** — paste repo URLs (one per line) in Settings. SimplifyJobs-style trackers
   (with `listings.json`) work best; plain README-table repos are parsed too. *(This is where
   you add your two repos.)*
 
-Hit **↻ Refresh** in *Academics → New openings*. For each opening: **✓ Applied** moves it
-into *My applications* (with the company's real hiring stages pre-filled when The Trackr
-knows them), **✕ Skip** hides it forever.
+Openings carried by more than one tracker are listed **once**, with a chip for each source
+that has them. Matching is by normalised apply URL first, then a fuzzy title match within the
+same company — the sources word the same job differently ("2027 Software Engineer Program -
+Summer Internship" vs "Software Engineering Intern, 2027").
+
+Each source shows its own **fetched N min ago**, and SimplyTK also reports when *it* last
+verified its listings — so a successful fetch of stale data still looks stale.
+
+If a source is down or rate-limited, its openings are **kept from the last good refresh**
+rather than disappearing, and its chip turns red explaining why. This matters for The Trackr
+in particular: when you have hit its rate limit it replies `200 OK` with an empty list and a
+`Retry-After` header, which would otherwise read as "there are no internships". Hammering
+refresh is what triggers it, so if that chip goes red, just leave it a while.
+
+Hit **↻ Refresh** in *Academics → New openings* to pull every source at once. Neither tracker
+pushes new openings, so refreshing is manual and deliberate — which also keeps you well clear
+of The Trackr's rate limit. For each opening: **✓ Applied** moves it into *My applications*
+(with the company's real hiring stages pre-filled when The Trackr knows them), **✕ Skip** hides
+it forever.
 
 ### 📈 MetaTrader 4
 
@@ -150,7 +170,7 @@ electron/                 main process (Node side)
   integrations/           one file per external thing
     health-webhook.js     receives Health Auto Export pushes
     apple-health-import.js  parses export.xml (streamed)
-    internships.js        The Trackr API + GitHub tracker repos
+    internships.js        The Trackr + SimplyTK + GitHub repos, merged and de-duplicated
     calendar.js           ICS fetch + recurring-event expansion
 
 src/                      the UI (React)
