@@ -4,7 +4,19 @@
 // brings in whoever else is covering the story today, so a section is never
 // limited to a list somebody remembered to maintain. No API keys — every
 // feed is public RSS. Results are cached for offline reading.
-const store = require('./../store');
+//
+// The store is passed in rather than required, so this same file runs both in
+// Electron (JSON files on the laptop) and in a Cloudflare Worker (KV), where
+// there is no filesystem and no `electron` module to import.
+const nodeStore = safeRequireStore();
+
+function safeRequireStore() {
+  try {
+    return require('./../store');
+  } catch {
+    return null; // bundled into a Worker — the caller supplies the store
+  }
+}
 
 // Two kinds of feed:
 //
@@ -74,9 +86,16 @@ const PER_FEED = 15;
 // per topic the newest-first trim would let Astronomy crowd the others out.
 const PER_TOPIC = 70;
 
-async function refresh() {
+// `topics` refreshes only part of the front page. Cloudflare's free plan gives
+// a cron job 10ms of CPU and parsing all 29 feeds measures ~12.5ms, so the
+// Worker runs three staggered crons over a third of the topics each (~3ms).
+// Anything not in `topics` is carried over from `previous` untouched, so a
+// partial run updates its own sections without blanking the others.
+async function refresh({ store = nodeStore, topics = null, previous = null } = {}) {
+  const feeds = topics ? FEEDS.filter((feed) => topics.includes(feed.topic)) : FEEDS;
+
   const results = await Promise.all(
-    FEEDS.map(async (feed) => {
+    feeds.map(async (feed) => {
       try {
         const res = await fetch(feed.url, {
           headers: { 'User-Agent': 'Mozilla/5.0' },
@@ -90,17 +109,23 @@ async function refresh() {
     })
   );
 
-  // Merge + dedupe (Guardian's Iran and Middle East feeds overlap).
+  // Merge + dedupe (Guardian's Iran and Middle East feeds overlap). Stories
+  // carried over from the sections this run did not touch go in first, so a
+  // freshly fetched duplicate cannot displace one already on the page.
+  const carried = topics
+    ? (previous?.items || []).filter((item) => !topics.includes(item.topic))
+    : [];
   const seen = new Set();
   const items = [];
-  for (const result of results) {
-    for (const item of result.items) {
-      const key = item.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-      if (!key || seen.has(key)) continue;
-      seen.add(key);
-      items.push(item);
-    }
-  }
+  const add = (item) => {
+    const key = item.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    items.push(item);
+  };
+  for (const item of carried) add(item);
+  for (const result of results) for (const item of result.items) add(item);
+
   items.sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || ''));
 
   // One status line per source (feeds from the same outlet are merged).
@@ -110,13 +135,17 @@ async function refresh() {
     s.count += r.items.length;
     if (!r.ok) { s.ok = false; s.error = r.error; }
   }
+  // Keep the last known status of sources this run did not ask about, or a
+  // partial refresh would look as though half the front page had vanished.
+  const refreshedNames = new Set(feeds.map((feed) => feed.source));
+  const keptStatus = (previous?.sourceStatus || []).filter((s) => !refreshedNames.has(s.name));
 
   const payload = {
     items: capPerTopic(items),
-    sourceStatus: Object.values(bySource),
+    sourceStatus: [...Object.values(bySource), ...keptStatus],
     refreshedAt: new Date().toISOString(),
   };
-  store.save('news-cache', payload);
+  if (store) await store.save('news-cache', payload);
   return payload;
 }
 
@@ -242,4 +271,13 @@ function hash(text) {
   return h.toString(36);
 }
 
-module.exports = { refresh };
+// The three slices the Worker's cron triggers refresh, balanced by feed count
+// (10 / 9 / 10 of the 29) so each run stays well inside the free plan's 10ms
+// of CPU. Astronomy is a group of its own — it alone is ten feeds.
+const TOPIC_GROUPS = [
+  ['Astronomy'],
+  ['Middle East', 'Science'],
+  ['Tech & AI', 'UK', 'World'],
+];
+
+module.exports = { refresh, TOPIC_GROUPS };

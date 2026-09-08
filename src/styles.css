@@ -792,3 +792,18 @@ table.data td { padding: 7px 10px; border-top: 1px solid var(--border); }
 .cat-pill:hover { color: var(--text); background: var(--surface-2); }
 .cat-pill.on { font-weight: 600; }
 .cat-pill .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* Reaching the store can fail — a dead network, a wrong key, the Worker down.
+   Say so at the top of the section rather than letting an empty state imply
+   there is simply nothing there. */
+.error-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255, 92, 122, 0.12);
+  border: 1px solid rgba(255, 92, 122, 0.35);
+  color: var(--red);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.error-banner .grow { flex: 1; }

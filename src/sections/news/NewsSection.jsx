@@ -3,7 +3,7 @@
 // Israa reads. Click a card to open the full article in the browser; read
 // articles dim so the fresh ones stand out, and ☆ saves one to Favourites.
 import React, { useEffect, useState } from 'react';
-import { deck, isDesktop, openLink, useStore } from '../../api';
+import { deck, isLive, openLink, useStore } from '../../api';
 import { SectionHead, Chip, Empty } from '../../components/ui';
 
 const TOPICS = ['All', 'World', 'Middle East', 'Tech & AI', 'UK', 'Science', 'Astronomy'];
@@ -19,7 +19,7 @@ export default function NewsSection() {
   const [error, setError] = useState('');
 
   async function refresh() {
-    if (!isDesktop) return;
+    if (!isLive) return;
     setRefreshing(true);
     setError('');
     try {
@@ -87,7 +87,7 @@ export default function NewsSection() {
         sub={cache.refreshedAt ? `${cache.items.length} stories · updated ${timeAgo(cache.refreshedAt)}` : 'Hit refresh to pull your feeds'}
       >
         <input placeholder="Search stories…" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <button className="btn primary" onClick={refresh} disabled={refreshing || !isDesktop}>
+        <button className="btn primary" onClick={refresh} disabled={refreshing || !isLive}>
           {refreshing ? 'Refreshing…' : '↻ Refresh'}
         </button>
       </SectionHead>

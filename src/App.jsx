@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import PairScreen from './components/PairScreen';
-import { isRemote, remote } from './api';
+import { isRemote, isCloud, remote } from './api';
 import HealthSection from './sections/health/HealthSection';
 import AcademicsSection from './sections/academics/AcademicsSection';
 import CalendarSection from './sections/calendar/CalendarSection';
@@ -27,7 +27,7 @@ export default function App() {
   const [active, setActive] = useState(() => localStorage.getItem('deck:lastSection') || 'health');
   // A phone opened without the key gets the pairing screen instead of a
   // wall of failed requests.
-  const [paired, setPaired] = useState(() => !isRemote || remote.hasKey());
+  const [paired, setPaired] = useState(() => (!isRemote && !isCloud) || remote.hasKey());
 
   const select = (id) => {
     setActive(id);
@@ -45,8 +45,44 @@ export default function App() {
     <div className="app">
       <Sidebar sections={SECTIONS} active={active} onSelect={select} />
       <main className="main">
+        <ErrorBanner onUnpair={() => setPaired(false)} />
         <Section />
       </main>
+    </div>
+  );
+}
+
+// A section that cannot reach its data draws its empty state, which reads
+// exactly like "you have nothing" — so say what actually went wrong instead of
+// leaving it to be guessed at.
+function ErrorBanner({ onUnpair }) {
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    const onError = (event) => setMessage(event.detail);
+    window.addEventListener('deck:error', onError);
+    return () => window.removeEventListener('deck:error', onError);
+  }, []);
+
+  if (!message) return null;
+
+  const notPaired = /not paired|check the key/i.test(message);
+
+  return (
+    <div className="error-banner">
+      <span className="grow">{message}</span>
+      {notPaired && (isRemote || isCloud) && (
+        <button
+          className="btn small"
+          onClick={() => {
+            remote.clearKey?.();
+            onUnpair();
+          }}
+        >
+          Enter key
+        </button>
+      )}
+      <button className="btn small ghost" onClick={() => setMessage('')}>Dismiss</button>
     </div>
   );
 }

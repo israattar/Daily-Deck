@@ -84,6 +84,45 @@ For each calendar you want to see:
 iPhone **Calendar app → Calendars → ⓘ next to a calendar → Public Calendar → Share Link**.
 Paste the `webcal://…` link into **Settings → Apple / iCloud calendars** with a name and colour.
 
+### ☁️ The always-on half (Cloudflare Worker)
+
+The laptop only fetches while it is switched on, so news and internships stop
+updating the moment the lid closes. `worker/` runs the **same fetchers** on
+Cloudflare's schedule and keeps the results in KV, so your phone has current
+data whether or not the laptop is on. It is free — no card required.
+
+MT4, Apple Health and the Claude usage reader need files on the laptop and stay
+there; the Worker only handles news and internships.
+
+**One-time setup**
+
+```bash
+npx wrangler login                       # opens the browser
+npx wrangler kv namespace create DECK    # prints an id
+# paste that id into wrangler.toml
+npx wrangler secret put DECK_TOKEN       # invent a long random string
+npx wrangler deploy
+```
+
+For local testing, put `DECK_TOKEN=anything` in `.dev.vars` (gitignored) and run
+`npx wrangler dev --test-scheduled`.
+
+**Endpoints** (all need `Authorization: Bearer <token>` or `?k=<token>`)
+
+| | |
+|---|---|
+| `GET /api/ping` | health check |
+| `GET /api/store/<name>` | read a collection (`news-cache`, `internships`) |
+| `PUT /api/store/<name>` | write one — lets the phone save a skip while the laptop is off |
+| `POST /api/refresh?what=news\|internships\|all` | force a run without waiting for a cron |
+
+**Why the schedule looks odd.** Cloudflare's free plan allows exactly 3 cron
+triggers and gives each run **10 ms of CPU**. Parsing all 29 news feeds measures
+~12.5 ms, so the news refresh is split into three topic slices of ~3 ms,
+staggered ten minutes apart; each slice rewrites only its own topics and carries
+the rest across. Internships costs under a millisecond, so rather than spend a
+fourth trigger it rides along with the first slice at 06:00, 12:00 and 18:00.
+
 ### 📰 News sources
 
 Each section is a **mix of two kinds of feed**, set in `electron/integrations/news.js`:

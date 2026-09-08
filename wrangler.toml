@@ -1,0 +1,11 @@
+# Config for the Pages side (the app + its same-origin API).
+# The Worker keeps its own wrangler.toml; both bind the SAME KV namespace, so
+# the crons and the phone read and write one store.
+name = "daily-deck"
+pages_build_output_dir = "dist-cloud"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[kv_namespaces]]
+binding = "DECK"
+id = "3acd4c5370a04e079c2473092cc03149"

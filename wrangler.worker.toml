@@ -1,0 +1,25 @@
+name = "daily-deck"
+main = "worker/index.js"
+compatibility_date = "2026-09-01"
+# Lets the bundled Node-style modules (electron/integrations/*.js) run as-is.
+compatibility_flags = ["nodejs_compat"]
+
+# The store. Created with `npx wrangler kv namespace create DECK`.
+# This id names the bucket; it is not a secret.
+[[kv_namespaces]]
+binding = "DECK"
+id = "3acd4c5370a04e079c2473092cc03149"
+
+# Cloudflare's free plan allows exactly 3 cron triggers per Worker and gives
+# each run 10ms of CPU. Parsing all 29 news feeds measures ~12.5ms, so the news
+# refresh is split into three topic slices of ~3ms, staggered ten minutes apart.
+#
+# Internships needs no trigger of its own: it costs well under a millisecond,
+# so the first slice also runs it at 06:00, 12:00 and 18:00. That keeps us at
+# the three-trigger limit with room to spare.
+[triggers]
+crons = [
+  "0,30 * * * *",  # Astronomy (+ internships at 06/12/18)
+  "10,40 * * * *", # Middle East + Science
+  "20,50 * * * *", # Tech & AI + UK + World
+]

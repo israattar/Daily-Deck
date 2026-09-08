@@ -154,3 +154,9 @@ vite.config.ts.timestamp-*
 # Never commit local data seeds/exports
 __seed.json
 *.seed.json
+
+# Cloudflare Worker local secrets and build output
+.dev.vars
+.wrangler/
+.wrangler-test/
+dist-cloud/

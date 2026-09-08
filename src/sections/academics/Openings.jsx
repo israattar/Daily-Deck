@@ -4,7 +4,7 @@
 // "Applied" (moves to My applications) or "Skip" (tucked away at the
 // bottom, restorable any time).
 import React, { useEffect, useState } from 'react';
-import { deck, isDesktop, openLink, useStore } from '../../api';
+import { deck, isDesktop, isLive, openLink, useStore } from '../../api';
 import { DEFAULT_SETTINGS, DEFAULT_STAGES } from '../../lib/defaults';
 import { SectionHead, Chip, Empty, Modal, Field } from '../../components/ui';
 import { todayISO, daysUntil, countdownLabel, urgency, agoLabel } from '../../lib/dates';
@@ -251,7 +251,7 @@ export default function Openings() {
         }
       >
         <input placeholder="Search company or role…" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <button className="btn primary" onClick={refresh} disabled={refreshing || !isDesktop}>
+        <button className="btn primary" onClick={refresh} disabled={refreshing || !isLive}>
           {refreshing ? 'Refreshing…' : '↻ Refresh'}
         </button>
       </SectionHead>
